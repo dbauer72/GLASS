@@ -41,18 +41,25 @@ end;
 % do not use weight for future, as it might be singular. 
 %Wf2 = (Yf*Yf')/T;
 %Wf = inv(chol(Wf2)');
-Wf = 1;
+Wf2 = Yf*Yf'/T; 
+[u,s]=svd(Wf2);
+ds = sqrt(diag(s));
+ds(ds<0.000001)=0.000001;
+is = diag(1./ds);
+iWf =  u*is*u';
+
+
 Hfp = Yf*Zp'/T; 
 Wp2 = (Zp*Zp')/T;
 [u,s]=svd(Wp2);
-ds = diag(s);
-ds(ds<0.000001)=1;
-s = diag(ds);
+ds = sqrt(diag(s));
+ds(ds<0.000001)=0.000001;
+s = diag(1./ds);
 
-Wp =  u*s*u';
+iWp =  u*s*u';
 
-betaz = Hfp*pinv(Wp2);
-[U,S,V] = svd(Wf*betaz*Wp);
+wbetaz = iWf * Hfp*iWp;
+[U,S,V] = svd(wbetaz);
 
 % order estimation using SVC
 if isempty(n)|(plots)
@@ -86,11 +93,12 @@ end;
 if isempty(n)
     n = nhat;
 end;
-beta = V(:,1:n)'*inv(Wp);
-beta = beta(:,1:n)\beta;
+beta = V(:,1:n)'*iWp;
+%beta = beta(:,1:n)\beta;
 
 % ------ system matrices ------
 x = beta*Zp;
+
 C = Yf(1:nz,:)/x;
 res = Yf(1:nz,:) - C*x;
 Omega = (res*res')/T;
@@ -108,5 +116,7 @@ K = AK(:,n+1:end);
 % ----------   transformation to Echelon form
 % generic neighbourhood
 th = ss2ech_n(A,[K,zeros(n,nz-q)],C);
-th.Omega = D*LamO(1:q,1:q)*D'; 
+th.D = D; 
+th.B = th.K(:,1:q);
+th.Omega = LamO(1:q,1:q); 
 
