@@ -1,0 +1,207 @@
+function [qlike,tres] = cal_quasi_like_X(param,y,s,m,n,c,D0,Pbullet,restrict);
+% calculates the quasi likelihood for theta structure theta.
+%
+% SYNTAX: [qlike,tres] = cal_quasi_like_X(param,y,s,m,n,c,D0,Pbullet,restrict);
+%
+% INPUTS:  param ... d x 1 vector of parameter values (fed into param2syst,
+%                       see there for description)
+%          y     ... T x s matrix of observations
+%          s     ... integer; dimension of endogenous vars
+%          m     ... integer; dimension of exogenous vars (e.g.
+%                     deterministics)
+%          n     ... integer; state dimension
+%          c     ... integer; number of common trends.
+%          D0  ... indicator; If D0=1 (TRUE), then D=0 is used.
+%          Pbullet ... indicator var; if >0: state started with stationary
+%                   variance; if 0: state initialized with zero (corresponds to prediction error). 
+%          restrict ... structure containing restrictions to be passed on
+%                       to param2syst. 
+%
+% OUTPUT:   qlike ... real; -2/T log Gaussian likelihood.
+%           tres  ... Txs; matrix of residuals. 
+%
+% REMARKS: 
+%         + restrict.Omega: if this field is included, Omega is fixed not
+%                         included in parameter vector.
+%         + c>0: In this case the observations are transformed to stationary
+%         values for t>1. 
+%         + large penalization of eigenvalues larger than 0.99 of tilde A (unit
+%         roots) and tilde A-KC (minimum phase). 
+%         + includes exogenous inputs using matrix B but only stationary
+%         case up to now. 
+%         
+% AUTHOR: dbauer, 27.4.2023
+
+if nargin<9
+    restrict.det_res =0;
+    restrict.scale = ones(length(param),1);
+end;
+
+if nargin<8 % Pbullet: start with x_1 = x_bullet? 
+    Pbullet = 0;
+end;
+
+if nargin<7 
+    D0 = 0;
+end; 
+
+if isfield(restrict,'Omega')
+    Om = restrict.Omega;
+    paraomi = extr_lowtri(Om);
+    param = [paraomi(:);param];
+end;
+
+qlike = 0;
+
+% convert params to matrices
+u = y(:,s+1:end);
+y = y(:,1:s);
+
+
+% extract matrices from parameters 
+if Pbullet>=0
+    [A,B,C,D,K,Omega] = param2syst_X(param,s,n,m,c,D0,restrict); 
+else
+    [A,B,C,D,K,Omega] = param2syst_X(param,s,n,m,c,D0,restrict,eye(s)); 
+end;
+
+
+T = size(y,1);
+% new switch for Pbullet == 0: PE estimation 
+% --- if not minimum-phase-> penalize and project! ---
+makcA = max(abs(eig(A-K*C)));
+if (makcA>0.99) && (Pbullet<1)
+    A = A*0.99/makcA;
+    K = K*0.99/makcA;
+    qlike = 10^6*(exp(makcA)-exp(0.99));
+end
+
+
+if Pbullet == 0 
+    xh = ltitr(A-K*C,[B,K],[u,y],zeros(n,1));
+    tres = y-xh*C'-u*D';
+    [tres,~] = est_initial_val(tres,A-K*C,K,C);
+    Omegah = tres'*tres;
+    qlike = qlike+ T*log(det(Omega)) + trace(inv(Omega)*Omegah);
+    return;
+end;
+
+if Pbullet<0 
+    xh = ltitr(A-K*C,[B-K*D,K],[u,y],zeros(n,1));
+    tres = y-xh*C'-u*D';
+    [tres,~] = est_initial_val(tres,A-K*C,K,C);
+%     x1e = zeros(T*s,n);
+%     x1e([1:s],:)=C;
+%     for j=2:T
+%         x1e((j-1)*s+[1:s],:)= x1e((j-2)*s+[1:s],:)*(A-K*C);  
+%     end
+%     ttres = tres';
+%     ttv = ttres(:);
+%     ttv2 = ttv - x1e*(x1e\ttv);
+%     tres = reshape(ttv2,s,T)';
+    Omegah = tres'*tres/T;
+    qlike = qlike+ T*log(det(Omegah)) + T*s; %trace(inv(Omega)*Omegah);
+    return;
+end
+
+
+if c>0 % there is an integration going on! 
+    % find tilde k. via C1: 
+    C1 = C(:,1:c);
+    Pi = C1*inv(C1'*C1)*C1';
+    Cbull = [C(:,c+1:end)];
+    Kbull= K(c+1:end,:);
+    K1 = K(1:c,:);
+
+    % calculate tilde y_t = y_t - Pi y_{t-1}
+    ty = y; 
+    ty(2:end,:)=ty(2:end,:)-y(1:end-1,:)*Pi;
+
+    % transformed matrices 
+    tilA = [zeros(c,c),-C1'*Cbull;A(c+1:end,:)];
+    tilK = [K1-C1';Kbull];
+    tilC = C;
+else % no integration
+    tilA = A;
+    tilK= K;
+    tilC=C;
+    ty = y;
+end;
+
+if Pbullet>0 % if P_bull to be included: system cannot be unstable!
+    maA = max(abs(eig(tilA)));
+    if maA >0.99
+        tilA = tilA*0.99/maA;
+        qlike = qlike + 10^6*(exp(maA)-exp(0.99));
+    end
+end
+% correct for not-invertible systems: add large penalty.
+makcA = max(abs(eig(tilA-tilK*tilC)));
+if makcA>0.99
+    tilA = tilA*0.99/makcA;
+    tilK = tilK*0.99/makcA;
+    qlike = qlike + 10^6*(exp(makcA)-exp(0.99));
+end
+
+% calculate P_bull
+Q = tilK*Omega*tilK';
+Q = (Q+Q')/2;
+Qbull = Q(c+1:end,c+1:end);
+if Pbullet>0
+    pb = inv( eye((n-c)^2) - kron(tilA(c+1:end,c+1:end),tilA(c+1:end,c+1:end)))*Qbull(:);
+    Pbull = reshape(pb,n-c,n-c);
+    P0 = [0*eye(c),zeros(c,n-c);zeros(n-c,c),Pbull];
+    
+    
+    P0 = (P0+P0')/2;
+    % --- initialize the Kalman filter ---
+    x0= zeros(n,1);
+    tres = ty*0;
+    tres(1,:)=ty(1,:)-x0'*C'-u(1,:)*D';
+    Omegat= tilC*P0*tilC'+Omega;
+    Kt = (tilA*P0*tilC'+tilK*Omega)*inv(Omegat);
+    xf = tilA*x0 + Kt*tres(1,:)' + B*u(t,:)';
+    Pkg1 = tilA*P0*tilA' + Q- Kt*Omegat*Kt'; % P(2|1)
+    
+    %xf = x0 + P0*tilC'*inv(tilC*P0*tilC'+Omega)*(y(1,:)'-tilC*x0);
+    %P0g0 = P0-P0*tilC'*inv(tilC*P0*tilC'+Omega)*tilC*P0;
+    %
+    %% --- run the Kalman filter ---
+    %
+    %xf = tilA*xf;
+    %Pkg1 = tilA*P0g0*tilA' + Q;
+    %tres = ty*0;
+    %tres(1,:)=ty(1,:);
+    %Omegat= tilC*P0*tilC'+Omega;
+    
+    qlike = qlike +  log(det(Omegat)) + tres(1,:)*inv(Omegat)*tres(1,:)';
+    
+    for t=2:T % filter equations
+        Omegat = tilC*Pkg1*tilC'+Omega;
+        iOm = inv(Omegat);
+        tres(t,:)= ty(t,:) - xf'*tilC'-u(t,:)'*D';
+        Kt = (tilA*Pkg1*tilC'+tilK*Omega)*iOm;
+        xf = tilA*xf+ Kt*tres(t,:)' + B*u(t,:)';
+        Pkg1 = (tilA * Pkg1 *tilA') +Q - (Kt*Omegat*Kt');
+        Pkg1 = (Pkg1+Pkg1')/2;
+        % update likelihood
+        qlike = qlike + log(det(Omegat)) + tres(t,:)*inv(Omegat)*tres(t,:)';
+    end
+    
+else
+    P0 = 0*eye(n);
+    x0= zeros(n,1); % x(1|0)
+    Abar = tilA-tilK*tilC;
+    % --- run the filter for the inverse  transfer function ---
+    Ts = size(ty,1);
+    xt = ltitr(Abar,[B-tilK*D,tilK],[u(1:Ts-1,:),ty(1:Ts-1,:)],x0);
+    tres = ty(1:Ts,:)-xt*tilC'-u*D';
+    [tres,~] = est_initial_val(tres,Abar,tilK,tilC);
+    
+    Omegat =  tres'*tres/(Ts);
+    % update likelihood
+    qlike = Ts*log(det(Omegat)) + s*Ts;
+end
+
+
+%qlike = qlike/T;
