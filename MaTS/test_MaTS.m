@@ -1,28 +1,28 @@
 % skript for testing the alternating optimization approach for the
 % estimation of autoregressions for matrix valued time series. 
 
-T = 5000;
-M = 6;
-N = 11;
-L = 1;
-p = 3;
+T = 10000;
+M = 2;
+N = 3;
+L = 2;
+p = 2;
 
 Sigma = eye(M*N);
 
 % check normalize generated system
 % test normalization 
 % define matrices 
-A = zeros(M,M,1,1);
-A(:,:,1,1)=eye(M);
+Ao = zeros(M,M,L,p);
+Ao=rand(M,M,L,p);
 
-B = zeros(N,N,1,1);
-B(:,:,1,1)=1;
+Bo = zeros(N,N,L,p);
+Bo=rand(N,N,L,p);
 
 % calculate corresponding Kronecker product in vectorization 
-vec_poly_before =  vectorized_syst(A,B);
+vec_poly_before =  vectorized_syst(Ao,Bo);
 
 % normalize 
-[A,B] = norm_MaTS_syst(A,B);
+[A,B] = norm_MaTS_syst(Ao,Bo);
 vec_poly_after =  vectorized_syst(A,B);
 
 % compare output: should be numerically zero. 

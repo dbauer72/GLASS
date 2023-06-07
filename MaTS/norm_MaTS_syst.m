@@ -38,7 +38,7 @@ for j=1:L
     Phi = zeros(N*N,M*M); 
         
     for k=1:p
-        KronProd = kron(squeeze(B(:,:,j,k))',squeeze(A(:,:,j,k)));
+        KronProd = kron(squeeze(B(:,:,j,k)),squeeze(A(:,:,j,k)));
         % convert to reordered matrix:
         Phi = Phi + reorder_KronProd(KronProd,N,M);
     end
@@ -51,6 +51,6 @@ for j=1:L
     % write result into matrices
     for k=1:p
         A(:,:,j,k) = reshape(Q(:,k),M,M);
-        B(:,:,j,k) = reshape(R(k,:),N,N);
+        B(:,:,j,k) = reshape(R(k,:),N,N)';
     end
 end

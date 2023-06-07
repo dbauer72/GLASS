@@ -33,7 +33,7 @@ N = size(B,1);
 vec_poly = zeros(M*N,M*N,L);
 for j=1:L
     for k=1:p
-        vec_poly(:,:,j)= vec_poly(:,:,j)  + kron(squeeze(B(:,:,j,k))',squeeze(A(:,:,j,k)));
+        vec_poly(:,:,j)= vec_poly(:,:,j)  + kron(squeeze(B(:,:,j,k)),squeeze(A(:,:,j,k)));
     end
 end
 
