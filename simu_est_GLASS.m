@@ -116,14 +116,14 @@ nj = 1;
 % D=0? -> D0=1 (TRUE). 
 
 
-Wi = ones(4,4)-eye(4);
+Wi = (ones(4,4)-eye(4))/3;
 for j=1:4
     ystar = Wi(j,:)*y;
     ycom = Wom*y;
 
     z = [y(j,:)',ystar'];
-    [thi(j),Ai,Bi,Ci,Di,Ki,Omegai] = CCAX(z,1,nj,10,10,1,D0);
-    [result1(j),thc1(j),Ac,Bc,Cc,Dc,Kc,Omegac,~,lle] = StSp_I0X(z,1,1,10,D0,-1);
+    [thi(j),Ai,Bi,Ci,Di,Ki,Omegai] = CCAX(z,1,[],10,10,1,D0);
+    [result1(j),thc1(j),Ac,Bc,Cc,Dc,Kc,Omegac,~,lle] = StSp_I0X(z,1,size(Ai,1),10,D0,-1);
 end
 
 res1 = u'*0;
@@ -176,4 +176,72 @@ end
 
 figure
 plot(nd');
+
+% inspect residuals 
+Omega = res'* res/T
+Omega1 = res1'* res1/T
+
+plot(res(:,1),res1(:,1),'.')
+
+% first order autocorrelation matrix
+A_01 = res(1:end-1,:)\res(2:end,:)
+A_11 = res1(1:end-1,:)\res1(2:end,:)
+
+[norm(A_01(:)),norm(A_11(:))]
+
+% compare systems
+[Af,Kf]
+
+eig(Af)
+[Af1,Kf1]
+
+eig(Af1)
+
+% observability matrices
+O0 = zeros(4*10,4);
+for j=1:10
+    O0((j-1)*4+[1:4],:)=C*A^(j-1);
+end
+[U,S,V]= svd(O0);
+V0 = S(1:4,1:4)*V';
+
+% estimate with true W
+Of = zeros(4*10,4);
+for j=1:10
+    Of((j-1)*4+[1:4],:)=Cf*Af^(j-1);
+end
+
+[U,S,V]= svd(Of);
+Vf = S(1:4,1:4)*V'; 
+
+% estimate with wrong W
+Of1 = zeros(4*10,6);
+for j=1:10
+    Of1((j-1)*4+[1:4],:)=Cf1*Af1^(j-1);
+end
+
+[U,S,V]= svd(Of1);
+Vf1 = S(1:6,1:6)*V'; 
+
+% same for controllability
+% observability matrices
+Cal0 = zeros(4,4*10);
+for j=1:10
+    Cal0(:,(j-1)*4+[1:4])=A^(j-1)*K;
+end
+
+Cal0 = V0*Cal0; 
+
+Calf = zeros(4,4*10);
+for j=1:10
+    Calf(:,(j-1)*4+[1:4])=Af^(j-1)*Kf;
+end
+
+Calf = Vf*Calf; 
+
+Calf1 = zeros(6,4*10);
+for j=1:10
+    Calf1(:,(j-1)*4+[1:4])=Af1^(j-1)*Kf1;
+end
+Calf1 = Vf1*  Calf1; 
 

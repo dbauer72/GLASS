@@ -1,28 +1,33 @@
-function Phi = reorder_KronProd(KronProd,M,N)
+function Phi = reorder_KronProd(KronProd,M,N,Mz,Nz)
 % reorderKronProd reorders the entries in the matrix such that a Kronecker
-% product kron(A,B) for two square matrices B (NxN) and A (MxM) equals vA vB'.
+% product kron(A,B) for two square matrices B (NxNz) and A (MxMz) equals vA vB'.
 %
-% SYNTAX: Phi = reorder_KronProd(KronProd,M,N)
+% SYNTAX: Phi = reorder_KronProd(KronProd,M,N,Mz,Nz)
 %
-% INPUTS:    KronProd  ... MN x MN matrix. 
+% INPUTS:    KronProd  ... MN x MzNz matrix. 
 %            M         ... integer;
 %            N         ... integer; 
 %
-% OUTPUT:    Phi  ... M^2 x N^2 matrix. 
+% OUTPUT:    Phi  ... M Mz x N Nz matrix. 
 %
 % AUTHOR: dbauer, 6.6.2023.
 
-Phi = zeros(M^2,N^2); 
+if nargin<5
+    Nz = N;
+    Mz = M;
+end;
+
+Phi = zeros(M*Mz,N*Nz); 
 
 dims = size(KronProd);
-if ((dims(1) == M*N)+(dims(2) == M*N)) ~= 2
+if ((dims(1) == M*N)+(dims(2) == Mz*Nz)) ~= 2
     error("Matrix not of correct size!")
 end
 
 for a=1:M
-    for b=1:M
-        mat = KronProd((a-1)*N+(1:N),(b-1)*N+(1:N));
-        Phi((a-1)*M+b,:) = reshape(mat,1,N^2);
+    for b=1:Mz
+        mat = KronProd((a-1)*N+(1:N),(b-1)*Nz+(1:Nz));
+        Phi((a-1)*Mz+b,:) = reshape(mat,1,N*Nz);
     end
 end
 

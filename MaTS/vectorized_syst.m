@@ -17,6 +17,7 @@ function [vec_poly] = vectorized_syst(A,B)
 
 dims = size(A);
 M = dims(1);
+Mz = dims(2);
 if length(dims)>=3
     L = dims(3);
 else
@@ -29,8 +30,9 @@ else
 end
 
 N = size(B,1);
+Nz = size(B,2);
 
-vec_poly = zeros(M*N,M*N,L);
+vec_poly = zeros(M*N,Mz*Nz,L);
 for j=1:L
     for k=1:p
         vec_poly(:,:,j)= vec_poly(:,:,j)  + kron(squeeze(B(:,:,j,k)),squeeze(A(:,:,j,k)));

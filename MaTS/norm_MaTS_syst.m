@@ -21,6 +21,9 @@ dims = size(A);
 
 M = size(A,1);
 N = size(B,1);
+Mz = size(A,2);
+Nz = size(B,2);
+
 if length(dims)>=3
     L = dims(3);
 else
@@ -34,14 +37,15 @@ end
 
 % normalisation is performed lag by lag
 for j=1:L
-    KronProd = zeros(M*N,M*N);
-    Phi = zeros(N*N,M*M); 
+    KP = zeros(M*N,Mz*Nz);
+    Phi = zeros(N*Nz,M*Mz); 
         
     for k=1:p
         KronProd = kron(squeeze(B(:,:,j,k)),squeeze(A(:,:,j,k)));
         % convert to reordered matrix:
-        Phi = Phi + reorder_KronProd(KronProd,N,M);
+        KP = KP + KronProd;
     end
+    Phi = reorder_KronProd(KP,N,M,Nz,Mz);
     [Q,R]= qr(Phi');
 
     % adjust sign of diagonal entries
@@ -50,7 +54,7 @@ for j=1:L
     R(1:p,:)=diag(signs)*R(1:p,:);
     % write result into matrices
     for k=1:p
-        A(:,:,j,k) = reshape(Q(:,k),M,M);
-        B(:,:,j,k) = reshape(R(k,:),N,N)';
+        A(:,:,j,k) = reshape(Q(:,k),M,Mz);
+        B(:,:,j,k) = reshape(R(k,:),Nz,N)';
     end
 end

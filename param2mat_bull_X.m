@@ -75,8 +75,12 @@ else
     
     parbull(1:n*s)=[];
     
-    % K contains the remaining parameters. 
-    Kbull = reshape(parbull,n,s+m);
+    % B,K contains the remaining parameters. 
+    % parameters for Kbull
+    Bbull = reshape(parbull(1:n*m),n,m);
+    parbull(1:n*m)=[];
+    Kbull = reshape(parbull(1:n*s),n,s);
+
     if nargout>3
         dap = eye(n*s);
         for j=1:n*s
@@ -89,7 +93,7 @@ else
         dkp = eye(n*s);
         for j=1:n*s
             dK(:,:,s*n+n*m+j)=reshape(dkp(:,j),n,s);
-        end                  
+        end                 
     end
 end;
 
