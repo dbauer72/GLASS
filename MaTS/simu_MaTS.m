@@ -75,7 +75,7 @@ end
 Y = zeros(T+Leff,M,N);
 
 % chol of Sigma to transform noise 
-cSigma = chol(Sigma); 
+cSigma = Sigma; %chol(Sigma); 
 
 % iterate over time 
 for t = 1:T

@@ -7,7 +7,8 @@ N = 2;
 L = 2;
 p = 2;
 
-Sigma = eye(M*N);
+Sigma = randn(M*N,M*N) + 5* eye(M*N); 
+
 
 % estimate R systems to check, if it works 
 R=100;
