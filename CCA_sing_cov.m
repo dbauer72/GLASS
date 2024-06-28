@@ -19,7 +19,7 @@ function [th,A,K,C,D,Omega] = CCA_sing_cov(GammaT,n,q,kcol,krow,plots);
 % dbauer, 30.1.2023
 
 % first scale to improve numerical fit. 
-SCALE = diag(1./sqrt(diag(squeeze(GammaT(:,:,1)))));
+SCALE = 1; %diag(1./sqrt(diag(squeeze(GammaT(:,:,1)))));
 
 [N,~,kmax]=size(GammaT);
 

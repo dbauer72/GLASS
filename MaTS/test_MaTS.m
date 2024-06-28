@@ -119,3 +119,4 @@ close(f)
 
 % see, if errors are small
 hist(est_err(:,3:4))
+

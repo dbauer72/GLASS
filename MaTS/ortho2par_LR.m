@@ -18,6 +18,7 @@ par = [];
 
 % first transform from the right to lower diagonal in the heading pxp
 % matrix. 
+pa=0;
 
 % theta_R
 for i=1:(p-1)

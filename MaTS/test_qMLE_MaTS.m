@@ -2,8 +2,8 @@
 % estimation of autoregressions for matrix valued time series. 
 
 T = 1000;
-M = 3;
-N = 2;
+M = 5;
+N = 4;
 L = 2;
 p = 2;
 
@@ -87,7 +87,7 @@ for r=1:R
     est_err(r,1) = norm(A-Aest,"fro");
     est_err(r,2) = norm(B-Best,"fro");
 
-    if (est_err(r,3)+est_err(r,3)>100)
+    if (est_err(r,3)+est_err(r,4)>100)
         break
     end
 end
@@ -95,3 +95,18 @@ close(f)
 
 % see, if errors are small
 hist(est_err(:,4))
+
+% compare variances to empirical variances
+sd_cal = sqrt(diag(Vest));
+sd_emp = sqrt(mean((th_all- ones(100,1)*theta0(:)').^2));
+
+plot(sd_cal,sd_emp,'x')
+
+[sd_cal(:),sd_emp(:)]'
+
+% same for sPsi 
+sd_cal = sPsi(:);
+sd_emp = sqrt(mean((vec_all- ones(100,1)*mean(vec_all)).^2));
+
+plot(sd_cal,sd_emp,'x')
+

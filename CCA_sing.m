@@ -1,8 +1,8 @@
-function [th,A,K,C,D,Omega] = CCA_sing(z,n,q,kcol,krow,plots);
+function [th,A,K,C,D,Omega,nhat,nhat2,se,x] = CCA_sing(z,n,q,kcol,krow,plots);
 % CCA implements canonical correlations analysis subspace method for
 % singular state space processes.
 %
-% SYNTAX: [th,a,b,c,d,k,Omega] = CCA(z,n,kcol,krow,p);
+% SYNTAX: [th,A,K,C,D,Omega] = CCA_sing(z,n,q,kcol,krow,plots);
 %
 % INPUTS:   z ... Tx s matrix of observations.
 %           n ... integer; system order; if n=[] estimated using SVC.
@@ -21,6 +21,15 @@ function [th,A,K,C,D,Omega] = CCA_sing(z,n,q,kcol,krow,plots);
 
 [T,nz]=size(z);
 
+% ------ weigh matrix to get rid of integration annulations 
+y = z([2:T],1:nz);
+dy = y-z([1:(T-1)],1:nz);
+
+WW = dy'*dy/(T-1);
+CW = chol(WW);
+iCW = inv(CW);
+
+z(:,1:nz) = z(:,1:nz)*iCW;
 % ------ data Hankel matrices -----
 while krow*nz> (T-krow-kcol)
     krow = krow-1;
@@ -41,28 +50,32 @@ end;
 % do not use weight for future, as it might be singular. 
 %Wf2 = (Yf*Yf')/T;
 %Wf = inv(chol(Wf2)');
+tol = 0.000001;
 Wf2 = Yf*Yf'/T; 
-[u,s]=svd(Wf2);
-ds = sqrt(diag(s));
-ds(ds<0.000001)=0.000001;
+[uf,sf]=svd(Wf2);
+ds = sqrt(diag(sf));
+ds(ds<tol)=tol;
 is = diag(1./ds);
-iWf =  u*is*u';
-
+iWf_cca =  uf*is*uf';
+iWf = eye(size(Yf,1));
 
 Hfp = Yf*Zp'/T; 
 Wp2 = (Zp*Zp')/T;
-[u,s]=svd(Wp2);
-ds = sqrt(diag(s));
-ds(ds<0.000001)=0.000001;
-s = diag(1./ds);
+[up,sp]=svd(Wp2);
+ds = sqrt(diag(sp));
+%ds = (diag(sp));
 
-iWp =  u*s*u';
+ds(ds<tol)=tol;
+se = diag(1./ds);
+
+iWp =  up*se*up';
 
 wbetaz = iWf * Hfp*iWp;
 [U,S,V] = svd(wbetaz);
 
-% order estimation using SVC
-if isempty(n)|(plots)
+% order estimation 
+% %using SVC
+%if isempty(n)|(plots)
     s = diag(S);
     svc = s.^2 + log(T)/T*2*[1:length(s)]'*nz;
     nmax = length(s)-1;
@@ -73,20 +86,25 @@ if isempty(n)|(plots)
         nhat=1;
     end;
     
-    nhat = max(nhat,1); % make sure that the estimated order is not too small.
-end
+    nhat2 = max(nhat,1); % make sure that the estimated order is not too small.
+%end
 
+% alternative: use can. corr. 
+betaz = iWf_cca * Hfp*iWp;
+[Ucca,Scca,Vcca] = svd(betaz);
+se = diag(Scca); 
+nhat = sum(se>sqrt(1-log(T)/T));
+    
 if plots
     
     figure;
-    plot(s,'x');
+    plot(se,'x');
         hold on;
     plot([0,nmax],sqrt(1-log(T)/T)*[1,1],'m');
-    chat = sum(s>sqrt(1-log(T)/T));
-    title(sprintf('Singular values: c: %d, SVC: %d',chat,nhat));
-    plot(nhat,S(nhat,nhat),'ro');
-    for c=1:chat,
-        plot(c,S(c,c),'mo');
+    title(sprintf('Singular values: c: %d, SVC: %d',nhat,nhat2));
+    plot(nhat,Scca(nhat,nhat),'ro');
+    for c=1:nhat,
+        plot(c,Scca(c,c),'mo');
     end;
 end;
 
@@ -104,19 +122,22 @@ res = Yf(1:nz,:) - C*x;
 Omega = (res*res')/T;
 
 [D,LamO]= svd(Omega); 
+if isempty(q)
+    q = select_q(Omega,T);
+end
+
 D = D(:,1:q);
 eps = D'*res;
 % ------ residuals will be singular -----
-
-AK = x(:,2:end)/[x(:,1:end-1);eps(:,1:end-1)];
+AK = x(:,2:end)/[x(:,1:end-1);res(:,1:end-1)];
 A = AK(:,1:n);
-K = AK(:,n+1:end);
+K = AK(:,n+1:end)*D;
 
 
 % ----------   transformation to Echelon form
 % generic neighbourhood
-th = ss2ech_n(A,[K,zeros(n,nz-q)],C);
-th.D = D; 
+th = ss2ech_n(A,[K,zeros(n,nz-q)],CW'*C);
+th.D = CW'*D; 
 th.B = th.K(:,1:q);
 th.Omega = LamO(1:q,1:q); 
 
