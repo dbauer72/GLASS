@@ -1,4 +1,4 @@
-function y = idsim(T,th);
+function [y,x,u] = idsim(T,th);
 % idsim simulates a state space process using the th theta structure and
 % Gaussian white noise with variance th.Omega.
 %
@@ -32,13 +32,17 @@ end
 
 % inputs 
 u = randn(q,T);
-x = zeros(n,1);
+% take th.Omega into account 
+LOm = chol(th.Omega)'; 
+u = LOm*u;
+
+x = zeros(n,T+1);
 y = zeros(s,T); 
 
 % filter 
 for t=1:T
-    y(:,t)= th.C*x + th.D*u(:,t);
-    x = th.A*x + th.B*u(:,t);
+    y(:,t)= th.C*x(:,t) + th.D*u(:,t);
+    x(:,t+1) = th.A*x(:,t) + th.B*u(:,t);
 end
 
 y = y';

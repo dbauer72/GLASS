@@ -1,4 +1,4 @@
-function [y,chi,u]= simu_GDFM(T,ths,th_chi);
+function [y,chi,u,x,e,F]= simu_GDFM(T,ths,th_chi,Lambda);
 %  function to simulate a common factor model. 
 %
 %  SYNTAX:  [y,chi,u]= simu_GDFM(T,ths,q,th_chi);
@@ -18,9 +18,9 @@ function [y,chi,u]= simu_GDFM(T,ths,th_chi);
 
 % idiosynchratic component 
 u = zeros(0,T); 
-n = length(ths); 
-for in = 1:n
-    th = ths(n);
+N = length(ths); 
+for in = 1:N
+    th = ths(in);
     ui = idsim(T,th); 
     u = [u;ui'];
 end
@@ -30,16 +30,17 @@ N = size(u,1); % cross sectional dimension.
 C = th_chi.C;
 nC = size(C,1);
 
-if (N>nC)
-   C(end+1:N,:)=reshape(randn((N-nC)*T),N-nC,T);
+if nargin<4
+    Lambda = randn(N,nC); 
 end
-if (N<nC)
-    C = C(1:N,:);
-end;
 
-th_chi.C = C;
-chi = idsim(T,th_chi)';
+%th_chi.C = Lambda * th_chi.C;
+%th_chi.D = Lambda * th_chi.D;
 
+
+[F,x,e] = idsim(T,th_chi);
+
+chi = Lambda*F';
 % add the two parts
 y = chi + u; 
 
