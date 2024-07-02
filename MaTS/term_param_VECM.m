@@ -35,9 +35,14 @@ R = R(1:p,:);
 
 
 % adjust sign of diagonal entries
-signs = sign(diag(R(1:p,1:p)));
-Q(:,1:p)=Q(:,1:p)*diag(signs);
-R(1:p,:)=diag(signs)*R(1:p,:);
+%signs = sign(diag(R(1:p,1:p)));
+%Q(:,1:p)=Q(:,1:p)*diag(signs);
+%R(1:p,:)=diag(signs)*R(1:p,:);
+
+% impose assumptions by introducing NaNs
+for j=2:p
+    R(j,1:(j-1))=NaN;
+end
 
 % obtain parameters
 theta = ortho2par_LR(Q);
@@ -52,11 +57,6 @@ end
 ind = 1:(N*p); 
 N_ind = (reshape(ind,N,p))';
 R_A = R_A(N_ind(:),:);
-
-% impose assumptions by introducing NaNs
-for j=2:p
-    R_A(j,1:(j-1))=NaN;
-end
 
 if which
     R_A(end-rr+[1:rr],:)=NaN;

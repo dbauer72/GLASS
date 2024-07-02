@@ -41,8 +41,8 @@ N = dims(3);
 dY = Y(2:end,:,:) - Y(1:end-1,:,:);
 
 % initialize randomly
-Aest = randn(M,M,L,p)*0.1;
-Best = randn(N,N,L,p)*0.1;
+Aest = randn(M,M,L,p)*0.001;
+Best = randn(N,N,L,p)*0.001;
 
 % define Pi vY_{t-1} as exogenous term 
 rr = r(1);
@@ -53,8 +53,8 @@ Mz = M;
 Nz = N;
 
 % for initial values no cointegrating rank is used.
-Cest = randn(M,M,1,Jr)*0.1;
-Dest = randn(N,N,1,Jr)*0.1;
+Cest = randn(M,M,1,Jr)*0.001;
+Dest = randn(N,N,1,Jr)*0.001;
 
 Ym1 = Y(1:end-1,:,:);
 

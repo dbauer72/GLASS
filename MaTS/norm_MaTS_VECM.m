@@ -27,9 +27,9 @@ Q = Q(:,1:p);
 R = R(1:p,:);
 
 % adjust sign of diagonal entries
-signs = sign(diag(R(1:p,1:p)));
-Q(:,1:p)=Q(:,1:p)*diag(signs);
-R(1:p,:)=diag(signs)*R(1:p,:);
+%signs = sign(diag(R(1:p,1:p)));
+%Q(:,1:p)=Q(:,1:p)*diag(signs);
+%R(1:p,:)=diag(signs)*R(1:p,:);
 
 % now R contains the vectorized matrices as rows -> form matrix 
 vA = zeros(N*p,rr);
@@ -46,4 +46,4 @@ vA = vA(N_ind(:),:);
 
 Trafo = vA(end-rr+(1:rr),:); 
 alpha = alpha*inv(Trafo);
-beta = beta * Trafo; 
+beta = beta * Trafo'; 

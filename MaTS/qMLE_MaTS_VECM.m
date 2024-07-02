@@ -29,13 +29,18 @@ function [thetaest,Aest,Best,alphaest,betaest,ve]= qMLE_MaTS_VECM(Y,r,L,p)
 [T,M,N] = size(Y);
 
 % get initial estimate
-[Ai,Bi,alphai,betai]= est_MaTS_VECM(Y,r,L,p);
+[Ai,Bi,alphai,betai]= est_MaTS_VECM_OLS(Y,r,L,p);
+%[Ai2,Bi2,alphai2,betai2]= est_MaTS_VECM(Y,r,L,p);
 
 % calucate corresponding parameter vector
 par_init = MaTS2param_VECM(Ai,Bi,alphai,betai,r);
+%par_init2 = MaTS2param_VECM(Ai2,Bi2,alphai2,betai2,r);
+
+%[crit1,ve] = cal_crit_MaTS_VECM(Y,par_init,r,L,p);
+%[crit2,ve2] = cal_crit_MaTS_VECM(Y,par_init2,r,L,p);
 
 % non-linear optimization
-options = optimoptions('fminunc','display','iter','MaxFunctionEvaluations',100000,'MaxIterations',100000);
+options = optimoptions('fminunc','display','iter','MaxFunctionEvaluations',500000,'MaxIterations',100000);
 %options.MaxFunctionEvaluations = 1000;
 
 [thetaest,exitflag] = fminunc(@(x) cal_crit_MaTS_VECM(Y,x,r,L,p),par_init,options);

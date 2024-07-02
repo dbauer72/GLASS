@@ -3,32 +3,34 @@
 
 T = 1000;
 % M variables in N countries
-M = 3;
-N = 5;
+M = 5;
+N = 3;
 % L lags in the AR  equation with p terms each 
-L = 2;
-p = 2;
+L = 1;
+p = 1;
 % rr cointegrating relations, with Jr terms 
 rr = 2;
-Jr = 1; 
+Jr = 3; 
 r = [rr,Jr]; 
 
 % variance matrix with correlation in the cross section. 
-Sigma = randn(M*N,M*N) + 5* eye(M*N); 
+%Sigma = randn(M*N,M*N) + 5* eye(M*N); 
+Sigma = eye(M*N);
 
 % estimate R systems to check, if it works 
-R=10;
+R=100;
 
 f = waitbar(0,'Please wait...');
-est_err = zeros(R,4); 
+est_err = zeros(R,5); 
 
 % generate system 
 A = zeros(M,M,L,p); % dimensions of A are M x N x max lag x number of components. 
-A(:,:,1:L,1:p) = randn(M,M,L,p)*0.5;
+A(:,:,1,1)=eye(M);
+%A(:,:,1:L,1:p) = randn(M,M,L,p)*0.5;
 
 B = zeros(N,N,L,p);
-B(:,:,1:L,1:p) = randn(N,N,L,p)*0.5;
-
+%B(:,:,1:L,1:p) = randn(N,N,L,p)*0.5;
+B(:,:,1,1)=-eye(N)*0.5;
 % stabilize to avoid explosive systems 
 KroBA = zeros(M*N,M*N);
 for j=1:L
@@ -43,9 +45,15 @@ end
 [A,B] = norm_MaTS_syst(A,B);
 
 % Pi matrix = alpha * beta'
-[~,~,alpha] = param_term_rect(randn(100),M,1,N,rr,Jr,true);
-[~,~,beta] = param_term_rect(randn(100),M,1,N,rr,Jr,false);
-[alpha,beta] = norm_MaTS_VECM(alpha,beta,M,N,r)
+%[~,~,alpha] = param_term_rect(randn(100),M,1,N,rr,Jr,true);
+%[~,~,beta] = param_term_rect(randn(100),M,1,N,rr,Jr,false);
+
+alpha = par2ortho_LR(randn(100,1),M*N,2);
+beta = -alpha*(.5); 
+[alpha,beta] = norm_MaTS_VECM(alpha,beta,M,N,r);
+%alpha([4,6],1:2)=eye(2);
+%beta = alpha*0;
+%beta(1:2,1:2)=eye(2)*(-.5);
 
 % generate data
 [Y] = simu_MaTS_VECM(A,B,alpha,beta,T,Sigma);
@@ -108,6 +116,10 @@ end
 close(f)
 
 % see, if errors are small
+figure
+subplot(2,1,1)
 hist(est_err(:,4))
+subplot(2,1,2)
+hist(est_err(:,5))
 
 % compare variances to empirical variances

@@ -37,7 +37,7 @@ else
     p = 1;
 end 
 
-vY = zeros(T+L,M*N);
+vY = zeros(T+L+1,M*N);
 
 % chol of Sigma to transform noise 
 cSigma = Sigma; %chol(Sigma); 
@@ -55,13 +55,13 @@ for j=1:L
 end
 
 % iterate over time 
-for t = 1:T
+for t = (L+2):T
     %draw error 
     vU = cSigma * randn(M*N,1);
 
     vY(t+L,:)=vU';
     %add terms: loop over lags 
-    for j=1:L
+    for j=1:(L+1)
         vY(t+L,:) = vY(t+L,:) + vY(t+L-j,:)*squeeze(vAj(:,:,j))';
     end
 end

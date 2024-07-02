@@ -43,7 +43,7 @@ vYm1 = [NaN(1,M*N);vY(1:(end-1),:)];
 
 ve2 = dvY((L+1):T,:)-vYm1((L+1):T,:)*beta*alpha';
 
-for l=1:L
+for l=1:(L)
     ve2 = ve2 - dvY((L+1-l):(T-l),:)*squeeze(vec_poly(:,:,l))';
 end
 

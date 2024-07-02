@@ -45,9 +45,23 @@ if which
     R_A(end-N2+[1:N2],:)=eye(N2);
 end
 if p>1
-    for j=2:N2
-        R_A(j,1:(j-1))=0;
+    % reorder to obtain alpha_{j,r} matrices. 
+    ind = 1:(N1*p); 
+    N_ind = (reshape(ind,p,N1))';
+    R_A = R_A(N_ind(:),:);
+    % impose zeros due to QR. 
+    mR_A = reshape(R_A',N1*N2,p);
+    for j=2:p
+        mR_A(1:(j-1),j)=0;
     end
+
+    % back to R_A 
+    R_A = reshape(mR_A,N2,N1*p)';
+
+    % reorder entries. 
+    ind = 1:(N1*p); 
+    N_ind = (reshape(ind,N1,p))';
+    R_A = R_A(N_ind(:),:);
 end
 
 % vectorize 
