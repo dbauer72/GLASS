@@ -1,9 +1,10 @@
 % script to test functions 
 % main integers: 
 T = 1000;
-n = 1000; 
-q = 1;
-r = 5;
+N = 20; 
+q = 3;
+r = 6;
+n=5;
 
 % idiosynchartic part 
 ths(1) = theta_urs();
@@ -11,28 +12,35 @@ ths(1).A = 1.9*(rand(1)-.5);
 ths(1).B = 1;
 ths(1).C = ths(1).A;
 ths(1).D = 1;
-ths(1).Omega = 1; 
+ths(1).Omega = .1; 
 
-for j=2:n
+for j=2:N
     ths(j) = theta_urs();
     ths(j).A = 1.9*(rand(1)-.5);
     ths(j).B = 1;
     ths(j).C = ths(j).A;
     ths(j).D=1;
-    ths(j).Omega = 1; 
+    ths(j).Omega = .1; 
 end
 
 % common factor part. 
-th_chi = theta_urs();
-th_chi.C = randn(n,r);
-th_chi.A = diag(0.8*(rand(r,1)-.5));
-th_chi.B = randn(r,q); 
-th_chi.D = randn(n,q); 
-th_chi.Omega = eye(q);
+Lambda = par2ortho_plt(randn(N*r),N,r)*sqrt(N);
+th = theta_urs();
+th.C = rand(r,n);
+th.A = diag(0.8*(rand(n,1)-.5));
+th.B = ones(n,q)+ randn(n,q)*0.1; 
+th.D = rand(r,q); 
+th.Omega = eye(q);
+
+th_chi= th;
+th_chi.C = Lambda*th.C;
+th_chi.D = Lambda*th.D; 
 
 % simulate the process
-[y,chi,u]= simu_GDFM(T,ths,th_chi);
+[y,chi,u]= simu_GDFM(T,ths,th,Lambda);
 
+Gam = chi*chi'/T;
+svd(Gam)
 %%%%%%%%%%%%%%%%%%%%%%%%
 % static PCA over time. 
 %%%%%%%%%%%%%%%%%%%%%%%%
