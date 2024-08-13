@@ -1,4 +1,4 @@
-function result = compile_results_RM(parc,n,index,y,Pbull,nmax);
+function result = compile_results_RM(parc,n,index,y,Pbull,nmax,restrict);
 % compile_results_RM writes all information corresponding to the parameter
 % vector parc in the i-th regional model into the structure result. 
 % 
@@ -23,17 +23,56 @@ function result = compile_results_RM(parc,n,index,y,Pbull,nmax);
 % AUTHOR: dbauer, 2.8.2024.
 
 [T,sf]=size(y);
-[thc,paromi] = param2th_RM(parc,n,sf,index); 
+si = index(1);
+ci = index(2);
+cist = index(3); 
 
-if length(paromi)>0
-    Omega = fill_lowtri(paromi,sf);
-else
-    Omega = eye(sf); 
+% extract matrices from parameters
+if nargin<7
+    restrict.det_res = 0;
 end
-thc.B = zeros(n,m);
+if isfield(restrict,'exo')
+    Omega= zeros(sf,sf);
+    sist = sf-si; 
+    sizOmi = si*(si+1)/2;
+    paromi = parc(1:sizOmi);
+    Omega(1:si,1:si)= fill_lowtri(paromi,si);
 
-[llc,resc] = cal_quasi_like_RM(parc,y,n,index,Pbull);
-Omega= resc'*resc/size(resc,1);
+    sizOmist = sist*(sist+1)/2;
+    paromist = parc(sizOmi+[1:sizOmist]);
+    Omega(si+[1:sist],si+[1:sist])= fill_lowtri(paromist,sist);
+
+    sizOm = sizOmi+sizOmist; 
+else
+    sizOm = sf*(sf+1)/2;
+    paromi = parc(1:sizOm);
+    Omega = fill_lowtri(paromi,sf);
+end
+
+[thc] = param2th_RM(parc(sizOm+1:end),n,sf,index); 
+if isfield(restrict,'exo')
+    Omega= zeros(sf,sf);
+    sist = sf-si; 
+    sizOmi = si*(si+1)/2;
+    paromi = parc(1:sizOmi);
+    Omega(1:si,1:si)= fill_lowtri(paromi,si);
+
+    sizOmist = sist*(sist+1)/2;
+    paromist = parc(sizOmi+[1:sizOmist]);
+    Omega(si+[1:sist],si+[1:sist])= fill_lowtri(paromist,sist);
+
+    sizOm = sizOmi+sizOmist; 
+else
+    sizOm = sf*(sf+1)/2;
+    paromi = parc(1:sizOm);
+    Omega = fill_lowtri(paromi,sf);
+end
+
+thc.B = zeros(n,0);
+
+
+[llc,resc] = cal_quasi_like_RM(parc,y,n,index,Pbull,restrict);
+%Omega= resc'*resc/size(resc,1);
 thc.Omega = Omega;
 
 % calculate the variance matrices 

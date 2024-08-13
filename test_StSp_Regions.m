@@ -1,8 +1,8 @@
 % test estimation using state space for each region. 
 
 % specs 
-N = 5; % number regions 
-M = 6; % number of vars 
+N = 4; % number regions 
+M = 3; % number of vars 
 T = 1000; % number of time point 
 n = 6; % number of states total 
 

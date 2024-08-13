@@ -14,7 +14,7 @@ pest = max(pest,1);
 % calculate CVA and select n, q inside
 kcol = 2*pest;
 krow = 2*pest; 
-plots = 1;
+plots = 0;
 
 [th,A,K,C,D,Omega,nest,nest2,s,xe] = CCA_sing(Ft',n,q,kcol,krow,plots);
 

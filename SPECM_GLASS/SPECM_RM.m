@@ -100,6 +100,7 @@ pare = result.param;
 lle =result.deviance; %cal_quasi_like(pare,z,s,m,n,0,Pbull,restrict);
 
 [~,~,~,~,~,the] = param2syst(pare,sf,n,0,0,restrict);
+thi2=the; % save the intermediate result.
 
 % STEP 2: based on the initial estimate find closest state space system with c common trends, if c>0. 
 % Else skip this step. 
@@ -117,7 +118,7 @@ if ci>0
     restrict.scale = ones(length(parami),1);
 
     parc = est_cal_like_hess(z,sf,0,n,ci,the,restrict);
-    [~,~,~,~,~,the] = param2syst(parc,sf,n,0,0,restrict);
+    [~,~,~,~,~,the] = param2syst(parc,sf,n,0,ci,restrict);
 
 % STEP 2b: change the parameterization and approximate the K_{i,c}^* matrix,
 % afterwards optimize again. 
@@ -125,7 +126,7 @@ if ci>0
 % Here comes the GLASS specific part!!
     parc_star = th2param_RM(the,index,1);
     paromi = extr_lowtri(the.Omega);
-    param_star = [parc_star(:);param_star(:)];
+    param_star = [paromi(:);parc_star(:)];
     [pare_star,fval,exitflag] = fminunc(@(x) cal_quasi_like_RM(x,z,n,index,Pbull),param_star,options);
     parc = pare_star;
 else % if c==0 (stationary case)
@@ -133,12 +134,10 @@ else % if c==0 (stationary case)
 end
 
 % STEP 4: collect results 
+result = compile_results_RM(parc,n,index,z(:,1:sf),Pbull,nmax);
 
-parc = result.param;
-result = compile_results(parc,s,m,n,c,restrict,z(:,1:s),z(:,s+1:end),Pbull,nmax);
-
+% STEP 5: convert into regional vars and exogenous vars 
 thc = result.theta;
-thc.B = zeros(n,m);
 Ac = thc.A;
 Kc = thc.K;
 Cc = thc.C;

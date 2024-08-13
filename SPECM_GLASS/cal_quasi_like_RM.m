@@ -1,4 +1,4 @@
-function [qlike,tres] = cal_quasi_like_RM(param,y,n,index,Pbullet);
+function [qlike,tres] = cal_quasi_like_RM(param,y,n,index,Pbullet,restrict);
 % calculates the quasi likelihood for theta structure theta in the regional model within the GLASS framework.
 %
 % The structure is characterized by the index = [s(i),c(i),c(i)^*]. 
@@ -16,9 +16,12 @@ function [qlike,tres] = cal_quasi_like_RM(param,y,n,index,Pbullet);
 %          index ... vector of integers; see above
 %          Pbullet ... indicator var; if >0: state started with stationary
 %                   variance; if 0: state initialized with zero (corresponds to prediction error).  
+%          restrict ... restrict.exo (if it is present implements
+%                       exogeneity of star and dominant variables).
 %
 % OUTPUT:   qlike ... real; -2/T log Gaussian likelihood.
-%           tres  ... Txs; matrix of residuals. 
+%           tres  ... Txs; matrix of residuals.
+%           xts   ... Txn; matrix of state estimates.
 %
 % REMARKS: 
 %         + large penalization of eigenvalues larger than 0.99 of tilde A (unit
@@ -26,28 +29,48 @@ function [qlike,tres] = cal_quasi_like_RM(param,y,n,index,Pbullet);
 %         
 % AUTHOR: dbauer, 2.8.2024
 
+if nargin<6
+    restrict.det_res = 0;
+end
 
 if nargin<5 % Pbullet: start with x_1 = x_bullet? 
     Pbullet = 0;
 end;
 
 qlike = 0;
-[T,sf] = size(y,2);
+[T,sf] = size(y);
 si = index(1);
 ci = index(2);
 cist = index(3); 
 
-% extract matrices from parameters 
-[th,paromi] = param2th_RM(param,n,sf,index); 
+% extract matrices from parameters
+if isfield(restrict,'exo')
+    Omega= zeros(sf,sf);
+    sist = sf-si; 
+    sizOmi = si*(si+1)/2;
+    paromi = param(1:sizOmi);
+    Omega(1:si,1:si)= fill_lowtri(paromi,si);
+
+    sizOmist = sist*(sist+1)/2;
+    paromist = param(sizOmi+[1:sizOmist]);
+    Omega(si+[1:sist],si+[1:sist])= fill_lowtri(paromist,sist);
+
+    sizOm = sizOmi+sizOmist; 
+else
+    sizOm = sf*(sf+1)/2;
+    paromi = param(1:sizOm);
+    Omega = fill_lowtri(paromi,sf);
+end
+[th] = param2th_RM(param(sizOm+1:end),n,sf,index); 
 A= th.A;
 K= th.K;
 C= th.C;
 
-if length(paromi)
-    Omega = fill_lowtri(paromi,sf);
-else
-    Omega = eye(sf); 
-end
+%if length(paromi)
+%    Omega = fill_lowtri(paromi,sf);
+%else
+%    Omega = eye(sf); 
+%end
 
 % new switch for Pbullet == 0: PE estimation 
 % --- if not minimum-phase-> penalize and project! ---
@@ -82,7 +105,7 @@ if Pbullet<0
 %     ttv2 = ttv - x1e*(x1e\ttv);
 %     tres = reshape(ttv2,s,T)';
     Omegah = tres'*tres/T;
-    qlike = qlike+ T*log(det(Omegah)) + T*s; %trace(inv(Omega)*Omegah);
+    qlike = qlike+ T*log(det(Omegah)) + T*sf; %trace(inv(Omega)*Omegah);
     return;
 end
 
@@ -182,7 +205,7 @@ else
     
     Omegat =  tres'*tres/(Ts);
     % update likelihood
-    qlike = Ts*log(det(Omegat)) + s*Ts;
+    qlike = Ts*log(det(Omegat)) + sf*Ts;
 end
 
 
