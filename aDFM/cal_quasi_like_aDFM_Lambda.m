@@ -64,7 +64,7 @@ qlike = qlike + r*log(N) + c*(sum(Y(:).^2)/(T) - sum(Fhat(:).^2)/T*N);
     
 if Pbullet<0 
     xh = ltitr(A-K*C,K,Fhat,zeros(n,1));
-    Fres = Fhat-xh*C';
+    tres = Fhat-xh*C';
 
     Omegah = tres'*tres/T;
     qlike = qlike+ T*log(det(Omegah)) + T*r; 

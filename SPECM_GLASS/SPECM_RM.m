@@ -4,7 +4,7 @@ function  [result,thc,Ac,Kc,Cc,Omegac,thi,thi2,lle] = SPECM_RM(z,n,index,nmax,Pb
 % The star and the dominant variables are included in the modelling
 % resulting in a larger dimensional system for the i-th regional model. 
 % 
-% SYNTAX: [result,thc,Ac,Kc,Cc,Omegac,thi,thi2,lle] = SPECM(z,n,index,nmax,Pbull,thi);
+% SYNTAX: [result,thc,Ac,Kc,Cc,Omegac,thi,thi2,lle] = SPECM_RM(z,n,index,nmax,Pbull,thi);
 %
 % INPUT:  z ... Tx(si+sist) data: [y_{i,t},y_{i,t}^*]
 %         n ... state order to use

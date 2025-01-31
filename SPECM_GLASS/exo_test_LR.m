@@ -5,7 +5,7 @@ function [result,thc,Ac,Kc,Cc,Omegac,LR] = exo_test_LR(z,index,resulti);
 % SYNTAX: [result,thc,Ac,Kc,Cc,Omegac,LR] = exo_test_LR(z,n,index,nmax,Pbull,resulti);
 %
 % INPUT: z ... T x sf real matrix of observations
-%        index ... see cakl_quasi_like_RM for details.
+%        index ... see cal_quasi_like_RM for details.
 %        resulti ... output of SPECM_RM, see there for details.
 %
 % OUTPUT: same as for SPECM_RM, see there for details.

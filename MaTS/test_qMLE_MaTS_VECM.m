@@ -1,12 +1,12 @@
 % skript for testing the qMLE optimization approach for the
 % estimation of autoregressions for matrix valued time series. 
 
-T = 1000;
+T = 200;
 % M variables in N countries
 M = 5;
-N = 3;
+N = 6;
 % L lags in the AR  equation with p terms each 
-L = 1;
+L = 2;
 p = 1;
 % rr cointegrating relations, with Jr terms 
 rr = 2;
@@ -18,7 +18,7 @@ r = [rr,Jr];
 Sigma = eye(M*N);
 
 % estimate R systems to check, if it works 
-R=100;
+R=10;
 
 f = waitbar(0,'Please wait...');
 est_err = zeros(R,5); 
@@ -83,6 +83,15 @@ for jr=1:R
     % estimate using qMLE
     [thetaest,Aest,Best,alphaest,betaest,ve]= qMLE_MaTS_VECM(Y,r,L,p);
 
+    % vectorize 
+    y = zeros(size(Y,1),M*N);
+    for nn=1:N
+        y(:,[1:M]+ M*(nn-1))=squeeze(Y(:,:,nn));
+    end
+    % compare to VECM estimation 
+    [LL,alphahat,betahat,res,S,th,Va] = VECM_I1(y,L,size(betaest,2),5);
+    Pihat = alphahat*betahat'; 
+
     % compare output 
     [vec_poly] = vectorized_syst(A,B);    
     [vec_poly_est] = vectorized_syst(Aest,Best);
@@ -97,6 +106,7 @@ for jr=1:R
     est_err(jr,3) = norm(theta0-thetaest,"fro");
     est_err(jr,4) = norm(vec_poly-vec_poly_est,'fro');
     est_err(jr,5) = norm(alphaest*betaest'-alpha*beta','fro');
+    est_err(jr,6) = norm(alphahat*betahat'-alpha*beta','fro');
 
     for j=1:L
         Bmat = B(:,:,j,:);

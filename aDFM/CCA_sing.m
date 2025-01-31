@@ -26,7 +26,7 @@ y = z([2:T],1:nz);
 dy = y-z([1:(T-1)],1:nz);
 
 WW = dy'*dy/(T-1);
-CW = chol(WW);
+CW = eye(nz); %chol(WW);
 iCW = inv(CW);
 
 z(:,1:nz) = z(:,1:nz)*iCW;
@@ -93,7 +93,7 @@ wbetaz = iWf * Hfp*iWp;
 betaz = iWf_cca * Hfp*iWp;
 [Ucca,Scca,Vcca] = svd(betaz);
 se = diag(Scca); 
-nhat = sum(se>sqrt(1-log(T)/T));
+nhat2 = sum(se>sqrt(1-log(T)/T));
     
 if plots
     

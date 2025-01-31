@@ -1,5 +1,5 @@
 function [th,Omega] = param_syst_aDFM_Lambda(param,N,r,q,n)
-% param_syst_aDFM_LAmbda converts a parameter vector into a normalized system using a fixed Lambda.
+% param_syst_aDFM_Lambda converts a parameter vector into a normalized system using a fixed Lambda.
 %
 % SYNTAX:  param = syst_param_aDFM(th,Lambda)
 %

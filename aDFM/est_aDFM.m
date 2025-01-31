@@ -63,6 +63,7 @@ options.MaxFunctionEvaluations = 10000;
 [qlike,Fhat,tres,uhat] = cal_quasi_like_aDFM(pare,Y,r,q,n,Pbull);
 
 [the,Lambdae,Gam_zeta] = param_syst_aDFM(pare,N,r,q,n);
+the = norm_DBOmega(the); 
 
 % collect results 
 results.Lambda = Lambdae;

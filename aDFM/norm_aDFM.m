@@ -28,6 +28,7 @@ A = th.A;
 B = th.B;
 C = th.C;
 D = th.D; 
+Omega = th.Omega; 
 
 [n,q] = size(B);
 
@@ -46,10 +47,17 @@ TrafoL = sR*Q'*s(1:r,1:r)*v(:,1:r)'/sqrt(N);
 C = TrafoL*C;
 D = TrafoL*D;
 
-% normalize D
-[Q,R]= qr(D(1:q,1:q)');
-sR = diag(sign(diag(R)));
-D = D*Q*sR;
+% normalize D and Omega, such that D is part of an orthonormal column. 
+D_old = D; 
+[U,S,V]= svd(D*Omega*D');
+%sR = diag(sign(diag(R)));
+D = U(:,1:q);
+Dq = D(1:q,1:q); 
+D = D*inv(Dq);
+Omega = Dq*S(1:q,1:q)*Dq';
+
+Tb = D\D_old; 
+B = B*inv(Tb); 
 
 % normalize system 
 On = zeros(r*n,n);
@@ -63,6 +71,7 @@ iTrafo = inv(Trafo);
 
 th.C = C*iTrafo;
 th.A = Trafo*A*iTrafo;
-th.B = Trafo*B*Q*sR;
+th.B = Trafo*B;
 th.D = D;
+th.Omega = Omega; 
 
