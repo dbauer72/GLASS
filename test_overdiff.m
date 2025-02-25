@@ -150,6 +150,8 @@ legend({'CVA','qMLE','PEM',''})
 print -dpng abar_200.png
 
 % for T=1600
+trabar = squeeze(Abar_c2(:,1,j))+squeeze(Abar_c2(:,4,j));
+
 j=5;
 [xi,yi] = kdfft1(squeeze(Abar_i(:,1,j))+squeeze(Abar_i(:,4,j)),'knorm',1024,0.001);
 [xc,yc] = kdfft1(squeeze(Abar_c(:,1,j))+squeeze(Abar_c(:,4,j)),'knorm',1024,0.001);

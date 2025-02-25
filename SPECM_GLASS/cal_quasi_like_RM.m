@@ -25,7 +25,8 @@ function [qlike,tres] = cal_quasi_like_RM(param,y,n,index,Pbullet,restrict);
 %
 % REMARKS: 
 %         + large penalization of eigenvalues larger than 0.99 of tilde A (unit
-%         roots) and tilde A-KC (minimum phase). 
+%         roots) and tilde A-KC (minimum phase).
+%         + exogeneity here refers to Omega being block diagonal!
 %         
 % AUTHOR: dbauer, 2.8.2024
 
