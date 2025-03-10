@@ -1,4 +1,4 @@
-function [th,Lambda,RN,UN,Rtilde,Utilde] = param_syst_aDFM_thetatau(param,N,r,n)
+function [th,Lambda,RN,UN,Rtilde,Utilde] = param_syst_aDFM_thetatau(param,N,r,n,c)
 % param_syst_aDFM_thetatau converts a parameter vector into a normalized system.
 %
 % SYNTAX:  [th,Rtilde,Utilde] = param_syst_aDFM_thetatau(param,N,r,n)
@@ -7,6 +7,7 @@ function [th,Lambda,RN,UN,Rtilde,Utilde] = param_syst_aDFM_thetatau(param,N,r,n)
 %         N     ... cross sectional dimension.
 %         r     ... static factor dimension
 %         n     ... state dimension in system for factor
+%         c     ... integer; number of common trends in common factors. 
 %
 % OUTPUTS:   th ... theta structure for system
 %            Lambda ... Nxr loading matrix. 
@@ -23,9 +24,13 @@ function [th,Lambda,RN,UN,Rtilde,Utilde] = param_syst_aDFM_thetatau(param,N,r,n)
 %                + V(u_t) = Omega.
 %                + D =I_r. 
 %                + (A,B,C) in echelon form. 
-% AUTHOR: dbauer, 24.2.2025
+% AUTHOR: dbauer, 10.3.2025
 
-nparth = 2*n*r+r*(r+1)/2; 
+if nargin< 5)
+    c= 0;
+end;
+
+nparth = 2*r*c - c^2 + 2*(n-c)*r+r*(r+1)/2; 
 npartau = (N-r)*r; 
 theta = param(1:nparth);
 tau = param((nparth+1):(nparth+npartau));
@@ -38,7 +43,7 @@ tauU = tau;
 UN = par2ortho(tauU,N-r,r)*sqrt(N);
 
 % generate th and RN
-[th,RN] = param_syst_aDFM_Utilde([theta(:);tauR(:)],r,n); 
+[th,RN] = param_syst_aDFM_Utilde([theta(:);tauR(:)],r,n,c); 
 
 % generate Rtilde, Utilde, Lambda
 Lambda = zeros(N,r);

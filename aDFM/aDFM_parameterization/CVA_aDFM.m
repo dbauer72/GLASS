@@ -18,6 +18,11 @@ function [th,A,K,C,D,Omega,nhat,nhat2,se,x] = CCA_aDFM(z,n,q,kcol,krow,plots);
 %
 % dbauer, 27.10.2019
 
+% --- correct kcol, krow if smaller than n.
+if (min(kcol,krow)<n)
+    kcol = max(kcol,n);
+    krow = max(kcol,n);
+end
 
 [T,nz]=size(z);
 

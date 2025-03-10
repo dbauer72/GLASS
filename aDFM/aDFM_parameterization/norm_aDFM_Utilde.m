@@ -1,4 +1,4 @@
-function [th,RN,UN,LambdaL] = norm_aDFM_Utilde(th,Lambda)
+function [th,RN,UN,LambdaL] = norm_aDFM_Utilde(th,Lambda,c)
 % norm_aDFM normalises the aDFM system given by the loading matrix Lambda
 % and the (tall) state space system th. 
 %
@@ -6,6 +6,7 @@ function [th,RN,UN,LambdaL] = norm_aDFM_Utilde(th,Lambda)
 %
 % INPUTS:   th ... theta structure for system
 %           Lambda ... Nxr loading matrix. 
+%           c  ... integer; number of common trends in common factors 
 %
 % OUTPUTS:   th ... theta structure for system
 %            RN ... rxr p.l.t part of the loading matrix. 
@@ -20,8 +21,8 @@ function [th,RN,UN,LambdaL] = norm_aDFM_Utilde(th,Lambda)
 %                + Lambda = [I;UN*RN*sqrt(N)], UN'*UN=I_r.  
 %                + V(u_t) = Omega.
 %                + D =I_r. 
-%                + (A,B,C) in echelon form. 
-% AUTHOR: dbauer, 24.2.2025
+%                + (A,B,C) in Bauer Wagner canonical form. 
+% AUTHOR: dbauer, 10.3.2025
 
 [N,r] = size(Lambda);
 
@@ -49,18 +50,63 @@ Omega = TrafoL*Omega*TrafoL';
 
 % convert state space system to echelon canonical form. 
 % normalize system 
-On = zeros(r*n,n);
-On(1:r,:)=C; 
-for j=1:(n-1)
-    On(j*r+[1:r],:) = C*A^j;
+if nargin<3
+    c = 0;
+end;
+
+% transform to extract common trends part. 
+if (c>0)
+    [V,dA] = eig(A-eye(n));
+    dd = diag(dA);
+    [~,I]=sort(abs(dd));
+    V= V(:,I);
+    A = inv(V)*A*V; 
+    C = C*V;
+    B = inv(V)*B; 
+    % convert C_1B_1 into canonical form 
+    C1B1 = real(C(:,1:c)*B(1:c,:));
+    [Q,R]=qr(C1B1);
+    C(:,1:c)=Q(:,1:c);
+    B(1:c,:)=R(1:c,:);
+
+    indbull= (c+1):n; 
+    Abull = A(indbull,indbull);
+    Bbull = B(indbull,:);
+    Cbull = C(:,indbull); 
+else
+    Abull = A;
+    Bbull = B;
+    Cbull = C; 
+    indbull = 1:n; 
 end
 
-Trafo = On(1:n,1:n);
+On = zeros(r*(n-c),(n-c));
+On(1:r,:)=Cbull; 
+for j=1:(n-1)
+    On(j*r+[1:r],:) = Cbull*Abull^j;
+end
+
+Trafo = On(1:(n-c),1:(n-c));
 iTrafo = inv(Trafo);
 
-th.C = C*iTrafo;
-th.A = Trafo*A*iTrafo;
-th.B = Trafo*B*inv(TrafoL);
+tCbull = real(Cbull*iTrafo);
+tAbull = real(Trafo*Abull*iTrafo);
+tBbull = real(Trafo*Bbull*inv(TrafoL));
+
+% fill in new system 
+C(:,indbull)= tCbull;
+A(indbull,indbull)=tAbull;
+B(indbull,:)=tBbull;
+
+if (c>0)
+    A(1:c,1:c) = eye(c);
+    A(1:c,indbull)=0;
+    A(indbull,1:c)=0; 
+end
+
+th.C = C;
+th.A= A;
+th.B = B; 
 th.D = D;
 th.Omega = Omega; 
 

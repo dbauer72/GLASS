@@ -5,7 +5,7 @@ clear all
 T = 100;
 N =100; 
 q = 2;
-n=8;
+n=2;
 r=q; 
 
 % idiosynchratic part 
@@ -26,7 +26,7 @@ for j=2:N
 end
 
 % common factor part. 
-Lambda = par2ortho_plt(rand(N*r),N,r)*sqrt(N);
+Lambda = par2ortho(rand(N*r),N,r)*sqrt(N);
 Lambda = Lambda(N:-1:1,:);
 [Q,R]=qr(Lambda(1:r,:)');
 Lambda= Lambda*Q*diag(sign(diag(R)));
@@ -40,6 +40,10 @@ th.B = par2ortho_plt(rand(N),n,q);
 th.D = [rand(r-q,q);eye(q)]; 
 th.Omega = eye(q);
 
+% include I(1) 
+th.A(1,1)=1;
+c=1;
+
 % make sure system is invertible 
 ev = abs(eig(th.A-th.B*th.C));
 while (max(ev)>0.99)
@@ -47,7 +51,7 @@ while (max(ev)>0.99)
     ev = abs(eig(th.A-th.B*th.C));
 end
 
-[th,RN,UN,Lambda]=  norm_aDFM_Utilde(th,Lambda);
+[th,RN,UN,Lambda]=  norm_aDFM_Utilde(th,Lambda,c);
 th_chi= th;
 th_chi.C = Lambda*th.C;
 th_chi.D = Lambda*th.D; 
@@ -55,14 +59,13 @@ th_chi.D = Lambda*th.D;
 % simulate the process
 [y,chi,u,x,e,F]= simu_GDFM(T,ths,th,Lambda);
 
-
-[resulti,thei,thii,llei] = est_aDFM_Utilde(y,r,n);
+[resulti,thei,thii,llei] = est_aDFM_Utilde(y,r,n,c);
 
 % estimate with true Lambda
-[result,the] = est_aDFM_Utilde(y,r,n,UN,1,thei);
+[result,the] = est_aDFM_Utilde(y,r,n,c,UN,1,thei);
 
 % estimate including tau_U. 
-[resultf,thef] = est_aDFM_thetatau(y,r,n,1,thei);
+[resultf,thef] = est_aDFM_thetatau(y,r,n,c,1,thei);
 
 % check, how good the result is: 
 [norm(Lambda- resulti.Lambda),norm(Lambda-result.Lambda),norm(Lambda-resultf.Lambda)]

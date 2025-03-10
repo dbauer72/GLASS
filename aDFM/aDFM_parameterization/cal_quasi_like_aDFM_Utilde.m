@@ -1,7 +1,7 @@
-function [qlike,Fe,tres,uhat] = cal_quasi_like_aDFM_Utilde(param,UN,Y,r,n,Pbullet)
+function [qlike,Fe,tres,uhat] = cal_quasi_like_aDFM_Utilde(param,UN,Y,r,n,c,Pbullet)
 % calculates the quasi likelihood for aDFM system for fixed Lambda matrix. 
 %
-% SYNTAX: [qlike,Fhat,Fres] = cal_quasi_like_aDFM_Utilde(param,Utilde,Y,r,n,Pbull)
+% SYNTAX: [qlike,Fhat,Fres] = cal_quasi_like_aDFM_Utilde(param,Utilde,Y,r,n,c,Pbull)
 %
 % INPUTS:  param ... d x 1 vector of parameter values (fed into param_syst_aDFM_Utilde,
 %                       see there for description)
@@ -10,6 +10,7 @@ function [qlike,Fe,tres,uhat] = cal_quasi_like_aDFM_Utilde(param,UN,Y,r,n,Pbulle
 %          Y ... NxT data matrix.
 %          r ... integer; static factor dimension
 %          n ... integer; system order.
+%          c ... integer; number of common trends
 %          Pbull ... indicator; if Pbull>0, state is started in stationary
 %                   distribution.
 %
@@ -18,10 +19,9 @@ function [qlike,Fe,tres,uhat] = cal_quasi_like_aDFM_Utilde(param,UN,Y,r,n,Pbulle
 %           Fres  ... qx T; matrix of estimated dynamic factors. 
 %
 %         
-% AUTHOR: dbauer, 24.7.2024
+% AUTHOR: dbauer, 10.3.2025
 
-
-if nargin<6 % Pbullet: start with x_1 = x_bullet? 
+if nargin<7 % Pbullet: start with x_1 = x_bullet? 
     Pbullet = 0;
 end;
 
@@ -31,7 +31,7 @@ qlike = 0;
 [N,T]=size(Y);
 
 % extract matrices from parameters 
-[th,RN] = param_syst_aDFM_Utilde(param,r,n);
+[th,RN] = param_syst_aDFM_Utilde(param,r,n,c);
 Lambda = [eye(r);UN*RN];
 [Q,R]=qr(Lambda);
 Utilde = Q(:,1:r); 
@@ -52,27 +52,60 @@ K = B*Ddagger;
 Fhat = (Utilde'*Y/sqrt(N))'; 
 Fe = Fhat*0; 
 
+% take into account possible integration
+if c>0 % there is an integration going on!
+    % find tilde k. via C1:
+    C1 = C(:,1:c);
+    Pi = C1*inv(C1'*C1)*C1';
+    Cbull = [C(:,c+1:end)];
+    Kbull= K(c+1:end,:);
+    K1 = K(1:c,:);
+    
+    % calculate tilde y_t = y_t - Pi y_{t-1}
+    ty = Fhat;
+    ty(2:end,:)=ty(2:end,:)-Fhat(1:end-1,:)*Pi;
+    
+    % transformed matrices
+    tilA = [zeros(c,c),-C1'*Cbull;A(c+1:end,:)];
+    tilK = [K1-C1';Kbull];
+    tilC = C;
+else % no integration
+    tilA = A;
+    tilK= K;
+    tilC=C;
+    ty = Fhat;
+end;
+
+if Pbullet>0 % if P_bull to be included: system cannot be unstable!
+    maA = max(abs(eig(tilA)));
+    if maA >0.999
+        tilA = tilA*0.999/maA;
+        qlike = qlike + 10^6*(exp(maA)-exp(0.999));
+    end
+end
+
 % new switch for Pbullet == 0: PE estimation 
 % --- if not minimum-phase-> penalize and project! ---
-makcA = max(abs(eig(A-K*C)));
+makcA = max(abs(eig(tilA-tilK*tilC)));
 if (makcA>0.99) && (Pbullet<1)
-    A = A*0.99/makcA;
-    K = K*0.99/makcA;
+    tilA = tilA*0.99/makcA;
+    tilK = tilK*0.99/makcA;
     qlike = 10^6*(exp(makcA)-exp(0.99));
 end
 
+
 % add constants due to directions outside of Lambda.
 % choose penalty for directions orthogonal to Lambda. 
-c = 1; 
-qlike = qlike + r*log(N) + c*(sum(Y(:).^2)/(T) - sum(Fhat(:).^2)/T*N);
+con = 1; 
+qlike = qlike + r*log(N) + con*(sum(Y(:).^2)/(T) - sum(Fhat(:).^2)/T*N);
 
 % PE estimation for factors.
 % This is a shortcut which is not unproblematic: Assumes invertibility of
 % A-B*Ddagger*C and uses this for the inverse filter!
     
 if Pbullet<0 
-    xh = ltitr(A-K*C,K,Fhat,zeros(n,1));
-    tres = Fhat-xh*C';
+    xh = ltitr(tilA-tilK*tilC,tilK,Fhat,zeros(n,1));
+    tres = Fhat-xh*tilC';
     uhat = tres*Ddagger';
     Fe = Fe + uhat*D'; 
 
@@ -81,45 +114,48 @@ if Pbullet<0
     return;
 end
 
-if Pbullet>0 % if P_bull to be included: system cannot be unstable!
-    maA = max(abs(eig(A)));
-    if maA >0.99
-        A = A*0.99/maA;
-        qlike = qlike + 10^6*(exp(maA)-exp(0.99));
-    end
-end
-
 % calculate P_bull
-Q = K*Omega*K';
+Q = tilK*Omega*tilK';
 Q = (Q+Q')/2;
 
+Qbull = Q(c+1:end,c+1:end);
 
-pb = inv( eye(n^2) - kron(A,A))*Q(:);
-P0 = reshape(pb,n,n);        
-P0 = (P0+P0')/2;
+pb = inv( eye((n-c)^2) - kron(tilA(c+1:end,c+1:end),tilA(c+1:end,c+1:end)))*Qbull(:);
+Pbull = reshape(pb,n-c,n-c);
+P0 = [0*eye(c),zeros(c,n-c);zeros(n-c,c),Pbull];
+
+
+P0 = (P0+P0')/2; % P(1|0).
 % --- initialize the Kalman filter ---
-x0= zeros(n,1);
-tres(1,:)=Fhat(1,:)-x0'*C';
+x0= zeros(n,1); % x(1|0)
+
+% --- run the Kalman filter ---
+tres = ty*0;
+tres(1,:)=ty(1,:); % e(1)
 Fe(1,:)= x0'*C';
+Omegat= tilC*P0*tilC'+D*Omega*D'+Gam_zeta; % Omega(1|0)
+Kt = (tilA*P0*tilC'+tilK*Omegat*D')*inv(Omegat);
+xf = tilA*x0 + Kt*tres(1,:)';
+Pkg1 = tilA*P0*tilA' + Q- Kt*Omegat*Kt'; % P(2|1)
 
-Omegat= C*P0*C'+D*Omega*D'+Gam_zeta;
-Kt = (A*P0*C'+K*Omega*D')*inv(Omegat);
-xf = A*x0 + Kt*tres(1,:)';
-Pkg1 = A*P0*A' + Q- Kt*Omegat*Kt'; % P(2|1)
+ev = min(eig(Pkg1));
+if ev<0
+    Pkg1 = Pkg1 -eye(n)*ev; 
+end
 
-qlike = qlike +  (log(det(Omegat)) + tres(1,:)*inv(Omegat)*tres(1,:)')/T;
+qlike = qlike +  log(det(Omegat)) + tres(1,:)*inv(Omegat)*tres(1,:)';
 
 for t=2:T % filter equations
-    Omegat = C*Pkg1*C'+D*Omega*D'+Gam_zeta;
+    Omegat = tilC*Pkg1*tilC'+D*Omega*D'+Gam_zeta;
     iOm = inv(Omegat);
-    tres(t,:)= Fhat(t,:) - xf'*C';
-    Fe(t,:)= xf'*C';
-    Kt = (A*Pkg1*C'+K*Omega*D')*inv(Omegat);
-    xf = A*xf+ Kt*tres(t,:)';
-    Pkg1 = (A * Pkg1 *A') +Q - (Kt*Omegat*Kt');
+    tres(t,:)= ty(t,:) - xf'*tilC';
+    Fe(t,:)= xf'*tilC';
+    Kt = (tilA*Pkg1*tilC'+tilK*Omega*D')*iOm;
+    xf = tilA*xf+ Kt*tres(t,:)';
+    Pkg1 = (tilA * Pkg1 *tilA') +Q - (Kt*Omegat*Kt');
     Pkg1 = (Pkg1+Pkg1')/2;
     % update likelihood
-    qlike = qlike + (log(det(Omegat)) + tres(t,:)*inv(Omegat)*tres(t,:)')/T;
+    qlike = qlike + log(det(Omegat)) + tres(t,:)*inv(Omegat)*tres(t,:)';
 end
 
 uhat = tres*Ddagger';

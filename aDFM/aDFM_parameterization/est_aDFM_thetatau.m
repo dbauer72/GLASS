@@ -1,12 +1,13 @@
-function  [results,the,thi,qlike,Lambdai] = est_aDFM_thetatau(Y,r,n,Pbull,thi)
+function  [results,the,thi,qlike,Lambdai] = est_aDFM_thetatau(Y,r,n,c,Pbull,thi)
 % est_aDFM_Utilde optimizes the Gaussian pseudo likelihood for an aDFM system with fixed Utilde starting from an initial
 % system.
 % 
-% SYNTAX: [results,the,thi,qlike] = est_aDFM_thetatau(Y,r,n,Pbull,thi);
+% SYNTAX: [results,the,thi,qlike] = est_aDFM_thetatau(Y,r,n,Pbull,thi,c);
 %
 % INPUT:  Y ... NxT data matrix.
 %         r ... integer; static factor dimension
 %         n ... integer; system order.
+%         c ... integer; number of common trends
 %         Pbull ... indicator; if Pbull>0, state is started in stationary
 %                   distribution.
 %         thi    ... use initial estimate.
@@ -26,7 +27,7 @@ function  [results,the,thi,qlike,Lambdai] = est_aDFM_thetatau(Y,r,n,Pbull,thi)
 %                + V(u_t) = Omega.
 %                + D =I_r. 
 %                + (A,B,C) in echelon form. 
-% AUTHOR: dbauer, 24.2.2025
+% AUTHOR: dbauer, 10.3.2025
 
 [N,T]= size(Y); 
 [thi2,~,Lambdai] = cal_est_aDFM(Y,r,n,r);
@@ -37,27 +38,27 @@ if nargin< 5 %no initial values given
     end
 
     % get initial estimate
-    [thi,RN2,UN2] = norm_aDFM_Utilde(thi2,Lambdai);
+    [thi,RN2,UN2] = norm_aDFM_Utilde(thi2,Lambdai,c);
 end
 
 Gam_zeta = eye(r)/N;
 
 % make sure, normalisations are followed.
 Lambdai = Lambdai*inv(Lambdai(1:r,1:r));
-[thi,RN,UN,Lambdai] = norm_aDFM_Utilde(thi,Lambdai); 
+[thi,RN,UN,Lambdai] = norm_aDFM_Utilde(thi,Lambdai,c); 
 
 % convert system estimate to parameter estimate
-parami = syst_param_aDFM_thetatau(thi,Lambdai); 
+parami = syst_param_aDFM_thetatau(thi,Lambdai,c); 
 
 % optimize criterion
 options = optimoptions('fminunc','display','iter');
 options.MaxFunctionEvaluations = 10000;
 
-[pare,fval,exitflag] = fminunc(@(x) cal_quasi_like_aDFM_thetatau(x,Y,r,n,Pbull),parami,options);
+[pare,fval,exitflag] = fminunc(@(x) cal_quasi_like_aDFM_thetatau(x,Y,r,n,c,Pbull),parami,options);
 
-[qlike,Fhat,tres,uhat] = cal_quasi_like_aDFM_thetatau(pare,Y,r,n,Pbull);
+[qlike,Fhat,tres,uhat] = cal_quasi_like_aDFM_thetatau(pare,Y,r,n,c,Pbull);
 
-[the,Lambdae] = param_syst_aDFM_thetatau(pare,N,r,n);
+[the,Lambdae] = param_syst_aDFM_thetatau(pare,N,r,n,c);
 
 % collect results 
 results.Lambda = Lambdae;
