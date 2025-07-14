@@ -32,9 +32,9 @@ function  [results,the,thi,qlike,Lambdai] = est_aDFM_thetatau(Y,r,n,c,Pbull,thi)
 [N,T]= size(Y); 
 [thi2,~,Lambdai] = cal_est_aDFM(Y,r,n,r);
 
-if nargin< 5 %no initial values given
-    if nargin<4
-        Pbull = 1; 
+if nargin< 6 %no initial values given
+    if nargin<5
+        Pbull = -1; 
     end
 
     % get initial estimate

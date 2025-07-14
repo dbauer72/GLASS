@@ -47,6 +47,7 @@ Utilde = LambdaL*inv(Rtilde);
 
 C = TrafoL*C;
 Omega = TrafoL*Omega*TrafoL';
+B= B*inv(TrafoL); 
 
 % convert state space system to echelon canonical form. 
 % normalize system 
@@ -91,7 +92,7 @@ iTrafo = inv(Trafo);
 
 tCbull = real(Cbull*iTrafo);
 tAbull = real(Trafo*Abull*iTrafo);
-tBbull = real(Trafo*Bbull*inv(TrafoL));
+tBbull = real(Trafo*Bbull);
 
 % fill in new system 
 C(:,indbull)= tCbull;

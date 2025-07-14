@@ -1,4 +1,4 @@
-function [th,A,K,C,D,Omega,nhat,nhat2,se,x] = CCA_aDFM(z,n,q,kcol,krow,plots);
+function [th,A,K,C,D,Omega,nhat,nhat2,se,x] = CCA_aDFM(z,n,q,kcol,krow,plots,W);
 % CCA implements canonical correlations analysis subspace method for
 % singular state space processes.
 %
@@ -9,6 +9,8 @@ function [th,A,K,C,D,Omega,nhat,nhat2,se,x] = CCA_aDFM(z,n,q,kcol,krow,plots);
 %           q ... integer; dimension of singular input, if q<s. 
 %           kcol, krow ... integers; past and future horizons for CCA.
 %           plots ... indicator; if plots>0 singular values are plotted. 
+%           W ... integer; different weights are used: W=0 default:
+%                       Identity, W=1: diffPCA weight. 
 %
 % OUTPUTS:  th ... theta structure of estimated system.
 %           (A,K,C) ... estimated state space system
@@ -17,6 +19,10 @@ function [th,A,K,C,D,Omega,nhat,nhat2,se,x] = CCA_aDFM(z,n,q,kcol,krow,plots);
 % REMARK: CCA subspace algorithm (see Larimore 1987), no exogenous inputs; uses a regression framework
 %
 % dbauer, 27.10.2019
+
+if nargin<7
+    W= 0;
+end;
 
 % --- correct kcol, krow if smaller than n.
 if (min(kcol,krow)<n)
@@ -30,9 +36,14 @@ end
 y = z([2:T],1:nz);
 dy = y-z([1:(T-1)],1:nz);
 
-WW = dy'*dy/(T-1);
-CW = eye(nz); %chol(WW);
-iCW = inv(CW);
+if (W>0)
+    WW = dy'*dy/(T-1);
+    CW = chol(WW);
+    iCW = inv(CW);
+else
+    CW= eye(nz);
+    iCW= CW;
+end;
 
 z(:,1:nz) = z(:,1:nz)*iCW;
 % ------ data Hankel matrices -----
@@ -62,7 +73,12 @@ ds = sqrt(diag(sf));
 ds(ds<tol)=tol;
 is = diag(1./ds);
 iWf_cca =  uf*is*uf';
-iWf = eye(size(Yf,1));
+if (W~=-1)
+    iWf = eye(size(Yf,1));
+else
+
+    iWf = iWf_cca; 
+end
 
 Hfp = Yf*Zp'/T; 
 Wp2 = (Zp*Zp')/T;
@@ -106,7 +122,7 @@ if plots
     plot(se,'x');
         hold on;
     plot([0,nmax],sqrt(1-log(T)/T)*[1,1],'m');
-    title(sprintf('Singular values: c: %d, SVC: %d',nhat,nhat2));
+    title(sprintf('Singular values: c: %d, SVC: %d',nhat2,nhat));
     if nhat>0
         plot(nhat,Scca(nhat,nhat),'ro');
         for c=1:nhat,
@@ -149,7 +165,7 @@ K = AK(:,n+1:end)*D;
 % ----------   transformation to Echelon form
 % generic neighbourhood
 th = ss2ech_n(A,[K,zeros(n,nz-q)],CW'*C);
-th.D = CW'*D; 
-th.B = th.K(:,1:q);
-th.Omega = LamO(1:q,1:q); 
+th.D = D; 
+th.B = th.K(:,1:q)*iCW';
+th.Omega = CW'*LamO(1:q,1:q)*CW; 
 

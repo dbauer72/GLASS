@@ -1,4 +1,4 @@
-function [y,chi,u,x,e,F]= simu_GDFM(T,ths,th_chi,Lambda);
+function [y,chi,u,x,e,F]= simu_GDFM(T,ths,th_chi,Lambda)
 %  function to simulate a common factor model. 
 %
 %  SYNTAX:  [y,chi,u]= simu_GDFM(T,ths,q,th_chi);

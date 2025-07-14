@@ -1,4 +1,4 @@
-function [th,rest,Lambdahat,pest,nest,nest2,s,qest,Omega] = cal_est_GDFM(y,r,n,q);
+function [th,rest,Lambdahat,pest,nest,nest2,s,qest,Omega] = cal_est_GDFM(y,r,n,q,W);
 
 T = size(y,2);
 % select r

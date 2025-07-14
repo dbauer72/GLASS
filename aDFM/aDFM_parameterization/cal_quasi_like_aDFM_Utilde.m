@@ -66,8 +66,8 @@ if c>0 % there is an integration going on!
     ty(2:end,:)=ty(2:end,:)-Fhat(1:end-1,:)*Pi;
     
     % transformed matrices
-    tilA = [zeros(c,c),-C1'*Cbull;A(c+1:end,:)];
-    tilK = [K1-C1';Kbull];
+    tilA = [zeros(c,c),-inv(C1'*C1)*C1'*Cbull;A(c+1:end,:)];
+    tilK = [K1-inv(C1'*C1)*C1';Kbull];
     tilC = C;
 else % no integration
     tilA = A;
@@ -104,13 +104,13 @@ qlike = qlike + r*log(N) + con*(sum(Y(:).^2)/(T) - sum(Fhat(:).^2)/T*N);
 % A-B*Ddagger*C and uses this for the inverse filter!
     
 if Pbullet<0 
-    xh = ltitr(tilA-tilK*tilC,tilK,Fhat,zeros(n,1));
-    tres = Fhat-xh*tilC';
+    xh = ltitr(tilA-tilK*tilC,tilK,ty,zeros(n,1));
+    tres = ty-xh*tilC';
     uhat = tres*Ddagger';
     Fe = Fe + uhat*D'; 
 
     Omegah = tres'*tres/T;
-    qlike = qlike+ T*log(det(Omegah)) + T*r; 
+    qlike = qlike+ log(det(Omegah)) + r; 
     return;
 end
 
@@ -143,7 +143,7 @@ if ev<0
     Pkg1 = Pkg1 -eye(n)*ev; 
 end
 
-qlike = qlike +  log(det(Omegat)) + tres(1,:)*inv(Omegat)*tres(1,:)';
+qlike = qlike +  (log(det(Omegat)) + tres(1,:)*inv(Omegat)*tres(1,:)')/T;
 
 for t=2:T % filter equations
     Omegat = tilC*Pkg1*tilC'+D*Omega*D'+Gam_zeta;
@@ -155,7 +155,7 @@ for t=2:T % filter equations
     Pkg1 = (tilA * Pkg1 *tilA') +Q - (Kt*Omegat*Kt');
     Pkg1 = (Pkg1+Pkg1')/2;
     % update likelihood
-    qlike = qlike + log(det(Omegat)) + tres(t,:)*inv(Omegat)*tres(t,:)';
+    qlike = qlike + (log(det(Omegat)) + tres(t,:)*inv(Omegat)*tres(t,:)')/T;
 end
 
 uhat = tres*Ddagger';

@@ -26,7 +26,7 @@ function [th,Lambda,RN,UN,Rtilde,Utilde] = param_syst_aDFM_thetatau(param,N,r,n,
 %                + (A,B,C) in echelon form. 
 % AUTHOR: dbauer, 10.3.2025
 
-if nargin< 5)
+if (nargin< 5)
     c= 0;
 end;
 

@@ -39,7 +39,7 @@ if (r>n) % only if n is larger than r the matrix C contains parameters.
     param(1:n^2)=[];
     A = reshape(para,n,n);
 else
-    C = [eye(r)];
+    C(:,1:r) = [eye(r)];
     if (n>r)
         A(1:(n-r),(r+1):end) = eye(n-r);
     end

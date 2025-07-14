@@ -33,15 +33,15 @@ function  [results,the,thi,qlike,Lambdai] = est_aDFM_Utilde(Y,r,n,c,UN,Pbull,thi
 [N,T]= size(Y); 
 [thi2,~,Lambdai] = cal_est_aDFM(Y,r,n,r);
 
-if nargin< 6 %no initial values given
-    if nargin<5
-        Pbull = 1; 
+if nargin< 7 %no initial values given
+    if nargin<6
+        Pbull = -1; 
     end
 
     % get initial estimate
     [thi,RN2,UN2] = norm_aDFM_Utilde(thi2,Lambdai,c);
     
-    if nargin<4
+    if nargin<5
         UN = UN2;        
     end
 end
