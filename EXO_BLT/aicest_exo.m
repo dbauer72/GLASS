@@ -59,7 +59,16 @@ AICs(2,1) = log(det(y'*y/Teff))*Teff + Teff*(si);
 AICs(3,1) = log(det(z'*z/Teff))*Teff + Teff*(sist+si);
 
 for i=1:nmax
-    
+   
+    % marginal model for star variables 
+    res_ist = yst - Xst(:,1:sist*i)*(Xst(:,1:sist*i)\yst);
+    Om_ist = res_ist'*res_ist/Teff;
+    dOm_ist = det(Om_ist);
+    if dOm_ist<10^(-20)
+        dOm_ist = 10^(-20);
+    end;
+    AICs(1,i+1) = log(dOm_ist)*Teff + Teff*sist + 2*i*sist*sist;
+
     % conditional model 
     res_i = y - Xcond(:,1:nz*i)*(Xcond(:,1:nz*i)\y);
     Om_i = res_i'*res_i/Teff;
@@ -69,14 +78,6 @@ for i=1:nmax
     end;
     AICs(2,i+1) = log(dOm_i)*Teff + Teff*si  + 2*i*si*nz;
 
-    % marginal model 
-    res_ist = yst - Xst(:,1:sist*i)*(Xst(:,1:sist*i)\yst);
-    Om_ist = res_ist'*res_ist/Teff;
-    dOm_ist = det(Om_ist);
-    if dOm_ist<10^(-20)
-        dOm_ist = 10^(-20);
-    end;
-    AICs(1,i+1) = log(dOm_ist)*Teff + Teff*sist + 2*i*sist*sist;
     % joint model 
     res_ij = [yst,y]  - Xfull(:,1:nz*i)*(Xfull(:,1:nz*i)\[yst,y]);
     Om_ij = res_ij'*res_ij/Teff;
@@ -127,10 +128,9 @@ else
 end
 
 
-
-
 %%%%% conditional model.
 % fill in the model into the ARX theta structure for the conditional model 
+k_est = k(2);
 phi = (Xcond(:,1:(sist+nz*k_est))\y)';
 res_i = y - Xcond(:,1:(sist+nz*k_est))*phi';
 Omega = res_i'*res_i/Teff; 
@@ -140,16 +140,16 @@ if k_est>0
         tharx = theta_urs();
         tharx.which = 'poly'; %use polynomial form.
         % find indices for y and z terms
-        indy = sist+[1:si];
+        indy = 2*sist+[1:si];
         if sist>0
-            indz = [1:sist];
+            indz = [1:2*sist];
         else
             indz = [];
         end
         for j=2:k_est
-            indy = [sist+[1:si],indy+nz];
+            indy = [2*sist+[1:si],indy+nz];
             if sist>0
-                indz = [1:sist,indz+nz];
+                indz = [indz,sist+(j-1)*nz+[1:sist]];
             end
         end;
         tharx.a = [eye(si),-phi(:,indy)];

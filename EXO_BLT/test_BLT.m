@@ -68,6 +68,7 @@ end
 plot(ystar)
 
 % --- generate y ---
+% th: filters y_t* and u_t.
 y1 = idsim_x(T,th,ystar);
 
 y = [ystar,y1];
@@ -82,8 +83,19 @@ Abar = th.A-th.K*th.C
 
 [LL,alphahat,betahat,Chat] = RH_specm_BLT(y,Abar,th.B-th.K*th.D,th.K,1,1,'n',5);
 
-% --- test excogeneity testing 
-[k,Omega,AICs,exo_test,tharx,thj,thst] = aicest_exo(y,3,10,0);
+% --- test exogeneity testing 
+[k,Omega,AICs,exo_test,tharx,thj,thst] = aicest_exo(y,3,20,0);
+thi_AR = project_init_ARX(tharx,3,2,4,2,2,1);
+parami = th2param_BLT(thi_AR,index,1);
+options = optimoptions('fminunc','display','final');
+options.MaxFunctionEvaluations = 10000;
+%restrict.scale = ones(length(parami),1);
+restrict.det_res = 0;
+
+% estimate initial stable model
+pare = est_cal_like_hess_BLT(y,4,sf,index,thi_AR,0,restrict);
+resulte = compile_results_BLT(pare,4,sf,index,y,0,4);
+
 
 % --- now test estimation ---
 [result,thc,Ac,Kc,Cc,Omegac,thi,thi2,lle] = SPECM_BLT(y,n,sf,index,5);
@@ -96,25 +108,25 @@ th_GL = combine_models_star(thc,thcst);
 
 % --- compared to a full model for both 
 [resultj,thj,Aj,Kj,Cj,Omegaj] = SPECM_I1(y,5,6,3,6,0);   
-thj2 = project_init(thj,3,2,4,2,2,1);
+thj2 = project_init(thj,3,2,4);
+restrict.det_res = 0;
 parami = th2param_BLT(thj2,index,1);
 options = optimoptions('fminunc','display','final');
 options.MaxFunctionEvaluations = 10000;
 %restrict.scale = ones(length(parami),1);
 
 % estimate initial stable model
-pare = est_cal_like_hess_BLT(y,4,sf,index,thj2,restrict);
-result = compile_results_BLT(pare,4,sf,index,y,0,4);
+pare = est_cal_like_hess_BLT(y,4,sf,index,thj2,0,restrict);
+resulte = compile_results_BLT(pare,4,sf,index,y,0,4);
 
 
-[parj2,Ak,Kk,Ck] = th2param(thj2,3,1);
-paro = extr_lowtri(thj2.Omega);
-restrict.det_res = 0;
-[Ae,Ke,Ce,De,Omegae] = param2syst([paro(:);parj2(:)],5,6,0,3,restrict);
+%[parj2,Ak,Kk,Ck] = th2param(thj2,3,1);
+%paro = extr_lowtri(thj2.Omega);
+%restrict.det_res = 0;
+%[Ae,Ke,Ce,De,Omegae] = param2syst([paro(:);parj2(:)],5,6,0,3,restrict);
 
-
-[qlike_GL,tres_GL] = cal_quasi_like([paro(:);par_GL(:)],y,5,0,6,3,0);
-
+%
+%[qlike_GL,tres_GL] = cal_quasi_like([paro(:);par_GL(:)],y,5,0,6,3,0);
 
 
 % ---- calculate parameters and evaluate likelihood
@@ -123,13 +135,54 @@ paro = extr_lowtri(thj.Omega);
 
 [qlikej,tresj] = cal_quasi_like([paro(:);parj(:)],y,5,0,6,3,0);
 
+% --- same for combined system 
 [par_GL,Ak,Kk,Ck] = th2param(th_GL,3,1);
-paro = extr_lowtri(th_GL.Omega);
-restrict.det_res = 0;
+paro_GL = extr_lowtri(th_GL.Omega);
+
 [Ae,Ke,Ce,De,Omegae] = param2syst([paro(:);par_GL(:)],5,6,0,3,restrict);
 
+restrict.det_res = 0;
 
 [qlike_GL,tres_GL] = cal_quasi_like([paro(:);par_GL(:)],y,5,0,6,3,0);
+% -- adjust Omega to enhance estimate
+Omh = tres_GL'*tres_GL/T;
+paro_GL = extr_lowtri(Omh);
+[qlike_GL,tres_GL] = cal_quasi_like([paro_GL(:);par_GL(:)],y,5,0,6,3,0);
+
+% --- now compare:
+[qlikej,qlike_GL]
+
+% --- number of parameters 
+[length(parj),length(result.param)+length(resultst.param)]
+
+% --- to true model 
+th_comb = combine_models_star(th,thcst);
+
+[par_comb] = th2param(th_comb,3,1);
+paro_comb = extr_lowtri(th_comb.Omega);
+restrict.det_res = 0;
+
+[qlike_comb,tres_comb] = cal_quasi_like([paro_comb(:);par_comb(:)],y,5,0,6,3,0);
+
+% --- compare AR representation for separate model to the one for the joint
+% model:
+
+% joint model 
+Abar = th_GL.A- th_GL.K*th_GL.C; 
+AR = zeros(3,5,20);
+for j=1:20
+    AR(:,:,j) = -[th_GL.C(3:5,:)-th.D*th_GL.C(1:2,:)]*Abar^(j-1)*th_GL.K;
+end
+
+% conditional model: 
+Abarc = thc.A- thc.K*thc.C; 
+ARc = zeros(3,5,20);
+for j=1:20
+    ARc(:,:,j) = -thc.C*Abarc^(j-1)*[thc.B-thc.K*thc.D,thc.K];
+end
+
+norm(AR-ARc,'fro')
+
 
 
 

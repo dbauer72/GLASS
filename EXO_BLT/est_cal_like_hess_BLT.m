@@ -1,4 +1,4 @@
-function [pare,llc2,resc2] = est_cal_like_hess_BLT(z,n,sf,index,thi,restrict);
+function [pare,llc2,resc2] = est_cal_like_hess_BLT(z,n,sf,index,thi,Pbull,restrict);
 % est_cal_like_hess_BLT performs minimization of the quasi likelihood taking
 % illconditioning of the Hessian into account. 
 % Starting values are contained in thi.
@@ -33,7 +33,7 @@ options.MaxFunctionEvaluations = 20000;
 %restrict.scale = ones(length(parami),1);
 %restrict.Omega = thi.Omega; 
 
-Pbull = -1; 
+%Pbull = -1; 
 
 [pare,fval,exitflag] = fminunc(@(x) cal_quasi_like_BLT(x,z,n,sf,index,Pbull,restrict),parami,options);
 [llc2,resc2] = cal_quasi_like_BLT(pare,z,n,sf,index,Pbull,restrict);

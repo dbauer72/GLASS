@@ -31,7 +31,7 @@ function  [result,thc,Ac,Kc,Cc,Omegac,thi,thi2,lle] = SPECM_BLT(z,n,sf,index,nma
 restrict.det_res = 0;
 
 if nargin<6
-    Pbull = -1;
+    Pbull = 0;
 end;
 
 [T,stot]= size(z); 
@@ -68,6 +68,21 @@ if nargin<6
         k = n;
     end;
     [thi,Ai,Bi,Ci,Di,Ki,Omegai] = CCAX(z(:,[(sist+1):end,1:sist]),si,n,2*k,2*k,0,1);
+    parami = th2param_BLT(thi,[0,index(2)],1);
+    paro = extr_lowtri(Omegai);
+    [qlikei,tresi] = cal_quasi_like_BLT([parami(:);paro(:)],z,n,[si,sist],[0,index(2)],0);
+
+    % alternative: long VARX and project
+    [k,Omega,AICs,exo_test,tharx,thj,thst] = aicest_exo(z,si,2*k,1);
+    thi_AR = project_init_ARX(tharx,si,sist,n,n,0,0);
+    parami2 = th2param_BLT(thi_AR,[0,index(2)],1);
+    paro2 = extr_lowtri(thi_AR.Omega);
+    [qlikei2,tresi2] = cal_quasi_like_BLT([parami2(:);paro2(:)],z,n,[si,sist],[0,index(2)],Pbull);
+
+    if (qlikei2<qlikei)
+        thi=thi_AR;
+    end
+
 end;
 
 % find parameters in stationary version
@@ -77,9 +92,10 @@ parami = th2param_BLT(thi,[0,index(2)],1);
 options = optimoptions('fminunc','display','final');
 options.MaxFunctionEvaluations = 10000;
 %restrict.scale = ones(length(parami),1);
+restrict.det_res = 0; 
 
 % estimate initial stable model
-pare = est_cal_like_hess_BLT(z,n,sf,[0,index(2)],thi,restrict);
+pare = est_cal_like_hess_BLT(z,n,sf,[0,index(2)],thi,Pbull,restrict);
 
 % random improvement of stable systems
 result = compile_results_BLT(pare,n,sf,[0,index(2)],z,Pbull,nmax);
@@ -116,7 +132,7 @@ if ci>0
     parami = th2param_BLT(the,index);
     %restrict.scale = ones(length(parami),1);
 
-    parc = est_cal_like_hess_BLT(z,n,sf,index,the,restrict);
+    parc = est_cal_like_hess_BLT(z,n,sf,index,the,Pbull,restrict);
 
 else % if c==0 (stationary case)
     parc = pare;
